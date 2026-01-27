@@ -10,6 +10,8 @@ from typing import Dict, Any, Optional
 from src.adapters.base_adapter import BaseVendorAdapter
 from src.adapters.coinbase_adapter import CoinbaseAdapter
 from src.adapters.binance_adapter import BinanceAdapter
+from src.adapters.kraken_adapter import KrakenAdapter
+from src.adapters.bitfinex_adapter import BitfinexAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -154,6 +156,10 @@ class SpecificationGenerator:
             return CoinbaseAdapter(vendor_config)
         elif vendor_name == 'binance':
             return BinanceAdapter(vendor_config)
+        elif vendor_name == 'kraken':
+            return KrakenAdapter(vendor_config)
+        elif vendor_name == 'bitfinex':
+            return BitfinexAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -279,6 +285,20 @@ class SpecificationGenerator:
             )
         elif vendor_name == 'binance':
             self._link_binance_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'kraken':
+            self._link_kraken_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'bitfinex':
+            self._link_bitfinex_feeds(
                 product_ids,
                 endpoint_ids,
                 channel_ids,
@@ -421,3 +441,139 @@ class SpecificationGenerator:
                 )
 
         logger.info(f"Linked {len(product_ids)} Binance products to feeds")
+
+    def _link_kraken_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: KrakenAdapter
+    ):
+        """
+        Link Kraken products to their feeds.
+
+        Args:
+            product_ids: Product IDs by symbol
+            endpoint_ids: Endpoint IDs by key
+            channel_ids: Channel IDs by name
+            adapter: Kraken adapter instance
+        """
+        # Get OHLC intervals
+        ohlc_intervals = adapter.get_ohlc_intervals()
+
+        # Link each product to available feeds
+        for symbol, product_id in product_ids.items():
+            # REST feeds
+            # Ticker
+            ticker_key = "GET /0/public/Ticker"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # OHLC (candlesticks)
+            ohlc_key = "GET /0/public/OHLC"
+            if ohlc_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ohlc_key],
+                    'candles',
+                    intervals=ohlc_intervals
+                )
+
+            # Trades
+            trades_key = "GET /0/public/Trades"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # Order book (Depth)
+            depth_key = "GET /0/public/Depth"
+            if depth_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[depth_key],
+                    'orderbook'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} Kraken products to feeds")
+
+    def _link_bitfinex_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BitfinexAdapter
+    ):
+        """
+        Link Bitfinex products to their feeds.
+
+        Args:
+            product_ids: Product IDs by symbol
+            endpoint_ids: Endpoint IDs by key
+            channel_ids: Channel IDs by name
+            adapter: Bitfinex adapter instance
+        """
+        # Get candle timeframes
+        candle_timeframes = adapter.get_candle_timeframes()
+
+        # Link each product to available feeds
+        for symbol, product_id in product_ids.items():
+            # REST feeds
+            # Ticker
+            ticker_key = "GET /v2/ticker/{symbol}"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # Candles
+            candles_key = "GET /v2/candles/trade:{timeframe}:{symbol}/hist"
+            if candles_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[candles_key],
+                    'candles',
+                    intervals=candle_timeframes
+                )
+
+            # Trades
+            trades_key = "GET /v2/trades/{symbol}/hist"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # Order book
+            book_key = "GET /v2/book/{symbol}/{precision}"
+            if book_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[book_key],
+                    'orderbook'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} Bitfinex products to feeds")

@@ -105,6 +105,46 @@ VENDORS = {
             "public_endpoints": True,
             "requires_api_key": False  # Phase 1: public only
         }
+    },
+    "kraken": {
+        "enabled": True,
+        "display_name": "Kraken",
+        "base_url": "https://api.kraken.com",
+        "websocket_url": "wss://ws.kraken.com",
+        "documentation_url": "https://docs.kraken.com/rest/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "asset_pairs": "/0/public/AssetPairs",
+            "time": "/0/public/Time",
+            "system_status": "/0/public/SystemStatus"
+        },
+        "rate_limits": {
+            "public": 20  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "bitfinex": {
+        "enabled": True,
+        "display_name": "Bitfinex",
+        "base_url": "https://api-pub.bitfinex.com",
+        "websocket_url": "wss://api-pub.bitfinex.com/ws/2",
+        "documentation_url": "https://docs.bitfinex.com/docs",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "platform_status": "/v2/platform/status",
+            "pair_list": "/v2/conf/pub:list:pair:exchange",
+            "tickers": "/v2/tickers"
+        },
+        "rate_limits": {
+            "public": 30  # requests per minute (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
     }
 }
 
