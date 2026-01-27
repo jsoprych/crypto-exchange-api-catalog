@@ -39,6 +39,7 @@ output/
 *.json
 !sql/**/*.json
 !mappings/*.json
+!examples/*.json
 
 # Logs
 *.log

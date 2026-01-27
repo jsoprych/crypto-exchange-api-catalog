@@ -1,0 +1,233 @@
+{
+  "spec_metadata": {
+    "vendor": "coinbase",
+    "display_name": "Coinbase Exchange",
+    "spec_version": "1.0",
+    "generated_at": "2026-01-27T00:34:34.802958Z",
+    "naming_convention": "snake_case",
+    "base_url": "https://api.exchange.coinbase.com",
+    "websocket_url": "wss://ws-feed.exchange.coinbase.com",
+    "documentation_url": "https://docs.cloud.coinbase.com/exchange/reference/"
+  },
+  "rest_api": {
+    "base_url": "https://api.exchange.coinbase.com",
+    "endpoints": [
+      {
+        "path": "/products",
+        "method": "GET",
+        "authentication_required": false,
+        "description": "Get a list of available currency pairs for trading",
+        "rate_limit_tier": "public",
+        "query_parameters": {},
+        "response_schema": {
+          "type": "array"
+        }
+      },
+      {
+        "path": "/products/{product_id}/candles",
+        "method": "GET",
+        "authentication_required": false,
+        "description": "Get historic rates for a product (candles/OHLCV)",
+        "rate_limit_tier": "public",
+        "path_parameters": {
+          "product_id": "string"
+        },
+        "query_parameters": {
+          "start": "ISO 8601 datetime",
+          "end": "ISO 8601 datetime",
+          "granularity": "integer (60, 300, 900, 3600, 21600, 86400)"
+        },
+        "response_schema": {
+          "type": "array"
+        }
+      },
+      {
+        "path": "/products/{product_id}/ticker",
+        "method": "GET",
+        "authentication_required": false,
+        "description": "Get snapshot information about the last trade (tick)",
+        "rate_limit_tier": "public",
+        "path_parameters": {
+          "product_id": "string"
+        },
+        "response_schema": {
+          "type": "object"
+        }
+      }
+    ]
+  },
+  "websocket_api": {
+    "url": "wss://ws-feed.exchange.coinbase.com",
+    "channels": [
+      {
+        "channel_name": "ticker",
+        "authentication_required": false,
+        "description": "Real-time price updates for a product",
+        "subscribe_format": {
+          "type": "subscribe",
+          "product_ids": [
+            "BTC-USD"
+          ],
+          "channels": [
+            "ticker"
+          ]
+        },
+        "unsubscribe_format": {
+          "type": "unsubscribe",
+          "product_ids": [
+            "BTC-USD"
+          ],
+          "channels": [
+            "ticker"
+          ]
+        },
+        "message_types": [
+          "ticker",
+          "subscriptions"
+        ],
+        "message_schema": {
+          "type": "ticker",
+          "sequence": "integer",
+          "product_id": "string",
+          "price": "string",
+          "open_24h": "string",
+          "volume_24h": "string",
+          "low_24h": "string",
+          "high_24h": "string",
+          "volume_30d": "string",
+          "best_bid": "string",
+          "best_ask": "string",
+          "side": "string",
+          "time": "datetime",
+          "trade_id": "integer",
+          "last_size": "string"
+        }
+      },
+      {
+        "channel_name": "level2",
+        "authentication_required": false,
+        "description": "Order book snapshots and updates",
+        "subscribe_format": {
+          "type": "subscribe",
+          "product_ids": [
+            "BTC-USD"
+          ],
+          "channels": [
+            "level2"
+          ]
+        },
+        "message_types": [
+          "snapshot",
+          "l2update",
+          "subscriptions"
+        ],
+        "message_schema": {
+          "snapshot": {
+            "type": "snapshot",
+            "product_id": "string",
+            "bids": "array of [price, size]",
+            "asks": "array of [price, size]"
+          },
+          "l2update": {
+            "type": "l2update",
+            "product_id": "string",
+            "changes": "array of [side, price, size]",
+            "time": "datetime"
+          }
+        }
+      }
+    ]
+  },
+  "products": [
+    {
+      "symbol": "BTC-USD",
+      "base_currency": "BTC",
+      "quote_currency": "USD",
+      "status": "online",
+      "min_order_size": 0.0001,
+      "max_order_size": 280.0,
+      "price_increment": 0.01,
+      "available_rest_feeds": [
+        {
+          "type": "ticker",
+          "endpoint": "/products/{product_id}/ticker",
+          "method": "GET"
+        },
+        {
+          "type": "candles",
+          "endpoint": "/products/{product_id}/candles",
+          "method": "GET",
+          "intervals": [
+            60,
+            300,
+            900,
+            3600,
+            21600,
+            86400
+          ]
+        },
+        {
+          "type": "trades",
+          "endpoint": "/products/{product_id}/trades",
+          "method": "GET"
+        },
+        {
+          "type": "orderbook",
+          "endpoint": "/products/{product_id}/book",
+          "method": "GET"
+        }
+      ],
+      "available_ws_channels": [
+        "heartbeat",
+        "level2",
+        "matches",
+        "ticker"
+      ]
+    },
+    {
+      "symbol": "ETH-USD",
+      "base_currency": "ETH",
+      "quote_currency": "USD",
+      "status": "online",
+      "min_order_size": 0.001,
+      "max_order_size": 5500.0,
+      "price_increment": 0.01,
+      "available_rest_feeds": [
+        {
+          "type": "ticker",
+          "endpoint": "/products/{product_id}/ticker",
+          "method": "GET"
+        },
+        {
+          "type": "candles",
+          "endpoint": "/products/{product_id}/candles",
+          "method": "GET",
+          "intervals": [
+            60,
+            300,
+            900,
+            3600,
+            21600,
+            86400
+          ]
+        },
+        {
+          "type": "trades",
+          "endpoint": "/products/{product_id}/trades",
+          "method": "GET"
+        },
+        {
+          "type": "orderbook",
+          "endpoint": "/products/{product_id}/book",
+          "method": "GET"
+        }
+      ],
+      "available_ws_channels": [
+        "heartbeat",
+        "level2",
+        "matches",
+        "ticker"
+      ]
+    }
+  ]
+}

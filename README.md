@@ -1,5 +1,10 @@
 # Vendor API Specification Generator
 
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: PEP8](https://img.shields.io/badge/code%20style-PEP8-orange.svg)](https://www.python.org/dev/peps/pep-0008/)
+[![Maintained: Yes](https://img.shields.io/badge/Maintained-Yes-green.svg)](https://github.com/jsoprych/coinbase_catalog_to_json)
+
 A robust, extensible system for discovering and cataloging cryptocurrency exchange APIs. Generates machine-readable JSON specifications for use in data ingestion applications.
 
 ## Purpose
