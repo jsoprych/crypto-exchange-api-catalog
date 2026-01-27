@@ -46,14 +46,18 @@ The JSON specification is designed for **code generation** and will be used by f
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/jsoprych/coinbase_catalog_to_json.git
 cd coinbase_catalog_to_json
+
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Initialize the database
-python main.py init
+python3 main.py init
 ```
 
 ## Quick Start
