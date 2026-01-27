@@ -163,6 +163,8 @@ VENDORS = {
 }
 ```
 
+**Note on Regional Endpoints:** Some exchanges have different endpoints by region (e.g., Binance.com vs Binance.US). Choose the endpoint that works for your primary user base. Document regional alternatives in the README with instructions on how to modify `config/settings.py` for different regions.
+
 ### 3. Register Adapter
 
 In `src/discovery/spec_generator.py`, add to `_create_adapter()`:
