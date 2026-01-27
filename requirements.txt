@@ -1,0 +1,24 @@
+
+# requirements.txt
+# Core dependencies for Vendor API Specification Generator
+
+# HTTP client with retry logic
+requests>=2.31.0
+
+# Command-line interface (standard library, but listed for reference)
+# argparse (built-in)
+
+# SQLite (built-in with Python)
+# sqlite3 (built-in)
+
+# For future WebSocket testing (optional)
+# websocket-client>=1.6.0
+
+# For future async operations (optional)
+# aiohttp>=3.9.0
+
+# Development dependencies (optional)
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.0.0
+# flake8>=6.1.0

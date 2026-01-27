@@ -1,0 +1,31 @@
+project_name: coinbase_catalog_to_json
+
+language: python
+
+purpose:
+  Produce a JSON catalog/spec from vendor APIs (starting with Coinbase), for the application to ingest and configure data subscriptions (tick feeds, bar feeds, etc.).
+
+objectives:
+  - Fetch Coinbase API documentation.
+  - Parse available data feeds (symbols, feed types, intervals).
+  - Output a structured JSON catalog for application ingestion.
+  - Prepare for future vendor differences by allowing a mapping mechanism from vendor fields to internal abstractions.
+
+requirements:
+  - Modular design: Break functions if >50 lines.
+  - Each function must have a clear docstring.
+  - First line of each file: comment with filename.
+  - Use Python best practices (PEP8, clear error handling).
+  - Include meaningful comments for clarity.
+  - Implement basic logging for key steps and errors.
+
+workflow:
+  - Step 1: Fetch API docs. Halt on error; log issues.
+  - Step 2: Parse feed details into internal structures. Halt on error; log issues.
+  - Step 3: Output JSON catalog. Validate output; log success.
+
+notes:
+  - README must explain that the JSON catalog is for configuring app data subscriptions.
+  - Expect future vendors; design for adaptable mapping. A secondary mapping JSON may be required to translate vendor-specific fields to internal abstractions.
+  - After Python validation, a Go implementation will follow.
+
