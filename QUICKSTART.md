@@ -185,6 +185,56 @@ python3 main.py query "SELECT * FROM v_latest_discovery_runs"
 python3 main.py query "SELECT * FROM v_product_feed_availability WHERE symbol = 'BTC-USD'"
 ```
 
+## Normalizing Exchange Data (Phase 2)
+
+The canonical field mapping system enables consistent data processing across exchanges:
+
+### Initialize Canonical Data
+```bash
+python3 src/scripts/init_canonical_data.py
+```
+
+### Test Normalization
+```bash
+# Test all exchanges
+python3 src/scripts/test_all_exchanges.py
+
+# Test specific exchange
+python3 src/scripts/test_normalization.py --vendor coinbase --data-type ticker
+```
+
+### Example: Normalize Coinbase Ticker
+```python
+from src.normalization.normalization_engine import NormalizationEngine
+
+engine = NormalizationEngine()
+sample_data = {
+    "type": "ticker",
+    "sequence": 5928281082,
+    "product_id": "BTC-USD",
+    "price": "43210.50",
+    "best_bid": "43210.00",
+    "best_ask": "43211.00",
+    "volume_24h": "1234.5678"
+}
+
+normalized = engine.normalize(
+    vendor_name="coinbase",
+    data_type="ticker",
+    input_data=sample_data
+)
+
+print(f"Bid: {normalized['bid_price']}")  # 43210.0
+print(f"Ask: {normalized['ask_price']}")  # 43211.0
+```
+
+### Check Mapping Coverage
+```bash
+sqlite3 data/specifications.db "SELECT * FROM vendor_coverage_view;"
+```
+
+**Result**: All 4 exchanges mapped with 47 field mappings.
+
 ## Next Steps
 
 1. **Explore SQL queries** - Check `sql/queries/` for pre-built analysis queries

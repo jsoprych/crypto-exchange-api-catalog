@@ -78,6 +78,15 @@ class DatabaseManager:
             conn.executescript(views_sql)
             logger.info("Database views created")
 
+        # Load and execute mapping schema
+        mapping_schema_path = PROJECT_ROOT / "sql" / "mapping_schema.sql"
+        if mapping_schema_path.exists():
+            with open(mapping_schema_path, 'r') as f:
+                mapping_schema_sql = f.read()
+
+            conn.executescript(mapping_schema_sql)
+            logger.info("Mapping schema initialized")
+
         conn.commit()
 
     def close(self):

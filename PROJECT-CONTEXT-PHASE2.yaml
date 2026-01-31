@@ -1,0 +1,63 @@
+project_name: canonical_field_mapping_system
+language: python
+purpose: Extend the existing vendor API catalog with a unified field-mapping layer
+  that translates vendor-specific WebSocket/REST fields into canonical, exchange-agnostic
+  field names.
+objectives:
+- Add canonical field mapping tables to SQLite database schema
+- Extract all field names from existing message_schema for 4 exchanges (Coinbase,
+  Kraken, Binance, Bitfinex)
+- 'Define canonical field catalog (~20 core fields: bid_price, ask_price, volume_24h,
+  etc.)'
+- Map vendor fields to canonical fields for core data types (ticker, order book, trade,
+  candle)
+- Implement normalization engine that applies mappings to both WebSocket messages
+  and REST responses
+- Add CLI commands for mapping management and validation
+- Integrate with trading daemon to replace hard-coded conversion logic
+requirements:
+- 'Bounded scope: 4 exchanges only, core data types only'
+- Support both WebSocket channels and REST endpoints
+- Handle arrays (apply same mapping per element)
+- Maintain backward compatibility with existing catalog
+- No breaking changes to existing API
+- 'Modular design: separate mapping engine from discovery logic'
+- Comprehensive logging and error handling
+scope_boundaries:
+  exchanges: Coinbase, Kraken, Binance, Bitfinex only
+  data_types: ticker, order book, trade, candle (OHLC) only
+  no_new_exchange_adapters: in this phase
+  no_fix_bloomberg_integration: internal canonical fields only
+  no_ui_visualization_tools: CLI/CSV-based mapping only
+database_schema_additions:
+- 'canonical_fields: industry-standard field references'
+- 'field_mappings: vendor_field_path -> canonical_field_id mappings'
+- 'canonical_data_types: templates for ticker, candle, trade, order_book'
+workflow:
+- 'Step 1: Generate field inventory from existing message_schema'
+- 'Step 2: Define canonical field catalog'
+- 'Step 3: Create mapping tables and import scripts'
+- 'Step 4: Implement normalization engine'
+- 'Step 5: Add CLI commands for mapping management'
+- 'Step 6: Test with trading daemon integration'
+integration_with_trading_daemon:
+- Trading daemon Registry loads canonical mappings from specifications.db
+- Replaces 592+ lines of hard-coded conversion logic in Kraken adapter
+- Enables hybrid REST+WebSocket workflows (live-evolving bars with authoritative snapshots)
+- Single normalization logic for all 4 exchanges
+success_criteria:
+- All 4 exchanges mapped for ticker data (WebSocket + REST)
+- Trading daemon uses mappings instead of hard-coded conversions
+- Hybrid bar-building workflow works with canonical data
+- New exchange addition requires only SQL inserts, no code changes
+timeline: 4 days
+day_by_day:
+- 'Day 1: Schema + field inventory'
+- 'Day 2: Core mapping for WebSocket ticker'
+- 'Day 3: REST endpoints + array support'
+- 'Day 4: Testing + integration'
+notes:
+- This extends the existing catalog, not replaces it
+- Mappings are stored in SQLite alongside existing vendor data
+- Can be deployed incrementally (exchange by exchange)
+- Exit ramp exists after any phase if ROI not demonstrated

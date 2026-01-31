@@ -61,6 +61,15 @@ The JSON specification is designed for **code generation** and will be used by f
 - **Products/symbols** - Trading pairs with metadata
 - **Feed relationships** - Links products to available data feeds
 
+### Canonical Field Mapping System (Phase 2)
+- **Vendor field normalization** - Map exchange-specific fields to canonical names
+- **4 exchanges supported** - Coinbase, Binance, Kraken, Bitfinex
+- **47 field mappings** - Standardized ticker fields across all exchanges
+- **Array extraction** - Handle Kraken-style array fields (e.g., `a[0]`, `b[0]`)
+- **Type transformations** - Automatic string→numeric, ms→datetime conversion
+- **SQL-driven mappings** - All mappings stored in database, no code changes needed
+- **Coverage analytics** - Real-time mapping coverage reports via `vendor_coverage_view`
+
 ## Installation
 
 ### Prerequisites
@@ -468,15 +477,16 @@ python main.py export --vendor new_vendor
 
 ## Future Enhancements
 
-### Phase 2: Authenticated Endpoints
+### Phase 3: Authenticated Endpoints
 - Add support for private endpoints (account, orders, fills)
 - Implement authentication configuration
 - Add private WebSocket channels
 
 ### Additional Vendors
-- Binance
-- Kraken
-- Bitfinex
+- FTX (if/when available)
+- Bybit
+- OKX
+- Gemini
 - And more...
 
 ### WebSocket Testing
@@ -491,8 +501,9 @@ python main.py export --vendor new_vendor
 
 ## Database Schema
 
-The SQLite database contains 11 tables:
+The SQLite database contains 17 tables:
 
+### Core Catalog Tables (11)
 - **vendors** - Vendor registry
 - **discovery_runs** - Audit trail of discovery runs
 - **rest_endpoints** - REST API endpoints
@@ -503,7 +514,15 @@ The SQLite database contains 11 tables:
 - **api_changes** - Change tracking
 - **spec_versions** - Specification version history
 
-See `sql/schema.sql` for complete DDL.
+### Canonical Mapping Tables (6) - Phase 2
+- **canonical_fields** - Industry-standard field definitions (26 fields)
+- **canonical_data_types** - Data type templates (ticker, order_book, trade, candle)
+- **field_mappings** - Vendor → canonical field mappings (47 mappings across 4 exchanges)
+- **data_type_fields** - Data type field requirements (36 requirements)
+- **mapping_validation** - Validation tracking and quality metrics
+- **Plus 2 views**: `vendor_mappings_view` and `vendor_coverage_view` for easy querying
+
+See `sql/schema.sql` for core DDL and `sql/mapping_schema.sql` for canonical mapping tables.
 
 ## Logging
 
