@@ -145,6 +145,27 @@ VENDORS = {
             "public_endpoints": True,
             "requires_api_key": False  # Phase 1: public only
         }
+    },
+    "bybit": {
+        "enabled": True,
+        "display_name": "Bybit",
+        "base_url": "https://api.bybit.com",
+        "websocket_url": "wss://stream.bybit.com/v5/public/spot",
+        "documentation_url": "https://bybit-exchange.github.io/docs/v5/intro",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "tickers": "/v5/market/tickers",
+            "orderbook": "/v5/market/orderbook",
+            "klines": "/v5/market/kline",
+            "time": "/v5/market/time"
+        },
+        "rate_limits": {
+            "public": 50  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
     }
 }
 
