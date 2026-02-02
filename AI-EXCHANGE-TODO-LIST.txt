@@ -1,0 +1,261 @@
+# AI-EXCHANGE-TODO-LIST.txt
+# TODO List for Expanding to 25 Cryptocurrency Exchanges
+# ========================================================
+
+## 📊 Current Status (Phase 3 Complete)
+✅ **11 exchanges integrated** with WebSocket ticker mappings:
+1. Coinbase (US-based, full coverage)
+2. Binance (Global, Binance.US for US customers)
+3. Kraken (US-based, full coverage)
+4. Bitfinex (Full coverage)
+5. OKX (Full coverage)
+6. KuCoin (Full coverage)
+7. Gate.io (Full coverage)
+8. Huobi (Full coverage)
+9. Bybit (US blocked, but mapped)
+10. MEXC (Full coverage, 2,719 products)
+11. Bitstamp (US-based, just added)
+
+✅ **130 field mappings** across all 11 exchanges
+✅ **Average coverage**: 60.1% across all exchanges
+✅ **Configurable testing framework** operational
+✅ **US access restrictions** documented
+
+## 🎯 Target: 25 Exchanges (Add 14 More)
+
+### Currently Integrated (11/25)
+- [x] 1. Coinbase
+- [x] 2. Binance
+- [x] 3. Kraken
+- [x] 4. Bitfinex
+- [x] 5. OKX
+- [x] 6. KuCoin
+- [x] 7. Gate.io
+- [x] 8. Huobi
+- [x] 9. Bybit
+- [x] 10. MEXC
+- [x] 11. Bitstamp
+
+### High-Priority Exchanges to Add (Top 14 by Volume/Impact)
+- [ ] 12. Bitget
+- [ ] 13. BitMart
+- [ ] 14. Crypto.com
+- [ ] 15. Gemini
+- [ ] 16. Poloniex
+- [ ] 17. Bittrex
+- [ ] 18. Deribit
+- [ ] 19. Phemex
+- [ ] 20. LBank
+- [ ] 21. WhiteBIT
+- [ ] 22. Upbit
+- [ ] 23. Bithumb
+- [ ] 24. Korbit
+- [ ] 25. Zaif
+
+### Reserve/Alternative Exchanges
+- [ ] HitBTC
+- [ ] FTX (bankrupt, but for historical reference)
+- [ ] Coincheck (Japan)
+- [ ] Liquid (Japan)
+- [ ] Binance.US (separate adapter)
+- [ ] WazirX (India)
+- [ ] Bitso (Latin America)
+
+## 📋 Selection Criteria for New Exchanges
+
+### Primary Criteria (MUST HAVE)
+1. **API Availability**: Public REST/WebSocket APIs documented
+2. **US Accessibility**: Can be accessed from US servers (or documented restrictions)
+3. **24h Trading Volume**: > $100M average daily volume
+4. **Active Development**: API maintained within last 6 months
+5. **Market Significance**: Regional importance or unique product offerings
+
+### Secondary Criteria (NICE TO HAVE)
+1. **Unique Features**: Perpetual contracts, options, staking
+2. **Regional Coverage**: Fills geographic gaps (Asia, Europe, LATAM)
+3. **Regulatory Compliance**: Licensed in major jurisdictions
+4. **Historical Data**: Available for backtesting
+5. **Open Source Support**: CCXT or other library integrations
+
+## 🚀 Implementation Phases
+
+### Phase 4: Rapid Expansion (Weeks 1-2)
+**Goal**: Reach 20 exchanges total (add 9 more)
+
+**Week 1 (3 exchanges)**
+1. Bitget (High volume derivatives)
+2. BitMart (Global spot exchange)
+3. Crypto.com (Major retail platform)
+
+**Week 2 (3 exchanges)**
+4. Gemini (US-regulated)
+5. Poloniex (Historical significance)
+6. Bittrex (US-based)
+
+**Week 2 Bonus (3 exchanges if ahead of schedule)**
+7. Deribit (Options/derivatives specialist)
+8. Phemex (High-performance derivatives)
+9. LBank (Asian market)
+
+### Phase 5: Regional Coverage (Weeks 3-4)
+**Goal**: Reach 25 exchanges total (add 5 more)
+
+**Week 3 (3 exchanges)**
+10. WhiteBIT (European focus)
+11. Upbit (Korea #1)
+12. Bithumb (Korea #2)
+
+**Week 4 (2 exchanges)**
+13. Korbit (Korea #3)
+14. Zaif (Japan)
+
+### Phase 6: Enhancement & Optimization
+**Goal**: Improve coverage >65% across all exchanges
+1. Add order_book, trade, candle data types for all exchanges
+2. Implement REST endpoint mappings
+3. Optimize low-coverage exchanges (Huobi, MEXC, Bybit)
+4. Add US access restriction testing automation
+
+## 🔧 Technical Tasks Per Exchange
+
+### Core Tasks (Estimated: 1-2 hours per exchange)
+- [ ] **Research**: API documentation review
+- [ ] **Configuration**: Add to `config/settings.py`
+- [ ] **Adapter**: Create `src/adapters/{exchange}_adapter.py`
+- [ ] **Registration**: Add to `spec_generator._create_adapter()`
+- [ ] **Discovery**: Run `python3 main.py discover --vendor {exchange}`
+- [ ] **Mappings**: Create `src/scripts/create_{exchange}_mappings.py`
+- [ ] **Testing**: Run `test_exchange_coverage.py {exchange}`
+- [ ] **Verification**: Check coverage > 50% for ticker
+
+### Optional Enhancement Tasks
+- [ ] **US Access Test**: Verify connectivity from US-based server
+- [ ] **Product Count**: Record number of discovered products
+- [ ] **Derivative Support**: Add perpetual/futures mappings if available
+- [ ] **REST Endpoints**: Map additional REST endpoints beyond ticker
+- [ ] **Error Handling**: Test error scenarios and edge cases
+
+## 📈 Success Metrics
+
+### Quantitative Goals
+- [ ] **25 exchanges** integrated with WebSocket ticker mappings
+- [ ] **Average coverage > 65%** across all exchanges
+- [ ] **All exchanges** passing normalization tests
+- [ ] **> 250 field mappings** total (from current 130)
+- [ ] **< 2 hours** average implementation time per new exchange
+- [ ] **100% US access documentation** for all exchanges
+
+### Qualitative Goals
+- [ ] **Automated exchange setup** script created (`add_exchange.py`)
+- [ ] **Template-based adapter** generation working
+- [ ] **Bulk configuration management** implemented
+- [ ] **Coverage optimization** for low-coverage exchanges
+- [ ] **Production-ready CLI** for exchange management
+
+## 📅 Estimated Timeline
+
+### Week-by-Week Plan
+**Week 1 (Current)**
+- Complete Bitstamp integration (DONE)
+- Create this TODO list
+- Start Bitget integration
+- Develop automated exchange setup script
+
+**Week 2**
+- Complete 5 exchanges (Bitget, BitMart, Crypto.com, Gemini, Poloniex)
+- Implement bulk configuration management
+- Test automated setup process
+
+**Week 3**
+- Complete 4 exchanges (Bittrex, Deribit, Phemex, LBank)
+- Extend to order_book data type for top 10 exchanges
+- Optimize low-coverage exchanges
+
+**Week 4**
+- Complete 5 exchanges (WhiteBIT, Upbit, Bithumb, Korbit, Zaif)
+- Reach 25 exchanges total
+- Implement production CLI enhancements
+- Final verification and documentation
+
+## 🛠️ Automation & Tooling Needed
+
+### Priority 1: Exchange Setup Automation
+```python
+# add_exchange.py --name bitget --base-url https://api.bitget.com --ws-url wss://ws.bitget.com
+# Should:
+# 1. Create adapter from template
+# 2. Add to config/settings.py
+# 3. Register in spec_generator.py
+# 4. Run initial discovery
+# 5. Generate mapping template
+```
+
+### Priority 2: Bulk Configuration Management
+- YAML-based exchange configuration
+- Batch discovery operations
+- Parallel testing framework
+- Coverage reporting dashboard
+
+### Priority 3: Enhanced Testing
+- US accessibility automated testing
+- Rate limit compliance verification
+- WebSocket connection stability tests
+- Historical data consistency checks
+
+## 📝 Notes & Considerations
+
+### US Access Challenges
+- Bybit requires VPN/proxy for US-based discovery
+- Some Korean exchanges (Upbit, Bithumb) may have IP restrictions
+- Document all restrictions clearly in US_ACCESS_RESTRICTIONS_REPORT.md
+
+### Regional Focus
+- Prioritize exchanges with unique regional coverage:
+  - Asia: Upbit, Bithumb, Korbit, Zaif
+  - Europe: WhiteBIT, Bitstamp
+  - LATAM: Bitso (if added)
+  - Global: Bitget, Crypto.com
+
+### Data Type Expansion
+After reaching 25 exchanges:
+1. Extend order_book mappings to all exchanges
+2. Add trade/candle mappings to top 15 exchanges
+3. Implement REST endpoint mappings for hybrid workflows
+4. Add derivative-specific field mappings
+
+### Maintenance & Updates
+- Weekly API change detection
+- Automated regression testing
+- Coverage degradation alerts
+- Exchange health monitoring
+
+## 🎉 Completion Criteria
+
+The expansion to 25 exchanges will be considered COMPLETE when:
+
+1. ✅ All 25 exchanges have:
+   - Working adapter implementation
+   - WebSocket ticker field mappings (>50% coverage)
+   - Product discovery working
+   - Normalization tests passing
+
+2. ✅ System metrics achieved:
+   - Average coverage > 65% across all exchanges
+   - All exchanges documented in IMPLEMENTATION-STATUS.md
+   - US access restrictions fully documented
+
+3. ✅ Automation tools created:
+   - `add_exchange.py` utility script
+   - Bulk configuration management
+   - Automated testing pipeline
+
+4. ✅ Documentation updated:
+   - README.md with 25-exchange support
+   - CONTRIBUTING.md with new exchange guidelines
+   - API coverage dashboard
+
+---
+**Last Updated**: Phase 3 complete, starting Phase 4 (25-exchange expansion)
+**Current Progress**: 11/25 exchanges (44% complete)
+**Next Priority**: Bitget Exchange integration
+**Estimated Completion**: 4 weeks from start

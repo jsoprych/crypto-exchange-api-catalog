@@ -1,17 +1,26 @@
 # src/discovery/spec_generator.py
 """
-Vendor API specification generator.
-Orchestrates the discovery process for vendor APIs.
+API specification generator orchestrates the discovery process.
+
+This module coordinates the end-to-end discovery of vendor API specifications,
+including REST endpoints, WebSocket channels, and trading products.
 """
 
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, List, Any, Optional
 
 from src.adapters.base_adapter import BaseVendorAdapter
 from src.adapters.coinbase_adapter import CoinbaseAdapter
 from src.adapters.binance_adapter import BinanceAdapter
 from src.adapters.kraken_adapter import KrakenAdapter
 from src.adapters.bitfinex_adapter import BitfinexAdapter
+from src.adapters.bybit_adapter import BybitAdapter
+from src.adapters.okx_adapter import OkxAdapter
+from src.adapters.kucoin_adapter import KucoinAdapter
+from src.adapters.gateio_adapter import GateioAdapter
+from src.adapters.huobi_adapter import HuobiAdapter
+from src.adapters.mexc_adapter import MexcAdapter
+from src.adapters.bitstamp_adapter import BitstampAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -160,6 +169,20 @@ class SpecificationGenerator:
             return KrakenAdapter(vendor_config)
         elif vendor_name == 'bitfinex':
             return BitfinexAdapter(vendor_config)
+        elif vendor_name == 'bybit':
+            return BybitAdapter(vendor_config)
+        elif vendor_name == 'okx':
+            return OkxAdapter(vendor_config)
+        elif vendor_name == 'kucoin':
+            return KucoinAdapter(vendor_config)
+        elif vendor_name == 'gateio':
+            return GateioAdapter(vendor_config)
+        elif vendor_name == 'huobi':
+            return HuobiAdapter(vendor_config)
+        elif vendor_name == 'mexc':
+            return MexcAdapter(vendor_config)
+        elif vendor_name == 'bitstamp':
+            return BitstampAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -299,6 +322,34 @@ class SpecificationGenerator:
             )
         elif vendor_name == 'bitfinex':
             self._link_bitfinex_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'okx':
+            self._link_okx_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'kucoin':
+            self._link_kucoin_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'gateio':
+            self._link_gateio_feeds(
+                product_ids,
+                endpoint_ids,
+                channel_ids,
+                adapter
+            )
+        elif vendor_name == 'huobi':
+            self._link_huobi_feeds(
                 product_ids,
                 endpoint_ids,
                 channel_ids,
@@ -577,3 +628,275 @@ class SpecificationGenerator:
                 )
 
         logger.info(f"Linked {len(product_ids)} Bitfinex products to feeds")
+
+    def _link_okx_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link OKX products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: OkxAdapter instance
+        """
+        logger.info("Linking OKX products to feeds")
+
+        # Get candle intervals from adapter
+        candle_timeframes = adapter.get_candle_intervals()
+
+        for symbol, product_id in product_ids.items():
+            # REST endpoints
+            # Ticker endpoint
+            ticker_key = "GET /api/v5/market/ticker"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # Order book endpoint
+            books_key = "GET /api/v5/market/books"
+            if books_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[books_key],
+                    'orderbook'
+                )
+
+            # Candlestick endpoint
+            candles_key = "GET /api/v5/market/candles"
+            if candles_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[candles_key],
+                    'candles'
+                )
+
+            # Trades endpoint
+            trades_key = "GET /api/v5/market/trades"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} OKX products to feeds")
+
+    def _link_kucoin_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link KuCoin products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: KucoinAdapter instance
+        """
+        logger.info("Linking KuCoin products to feeds")
+
+        # Get candle intervals from adapter
+        candle_timeframes = adapter.get_candle_intervals()
+
+        for symbol, product_id in product_ids.items():
+            # REST endpoints
+            # Ticker endpoint (all tickers)
+            ticker_key = "GET /api/v1/market/allTickers"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # Order book endpoint
+            orderbook_key = "GET /api/v1/market/orderbook/level2_20"
+            if orderbook_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[orderbook_key],
+                    'orderbook'
+                )
+
+            # Candlestick endpoint
+            candles_key = "GET /api/v1/market/candles"
+            if candles_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[candles_key],
+                    'candles'
+                )
+
+            # Trades endpoint
+            trades_key = "GET /api/v1/market/histories"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} KuCoin products to feeds")
+
+    def _link_gateio_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Gate.io products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: GateioAdapter instance
+        """
+        logger.info("Linking Gate.io products to feeds")
+
+        # Get candle intervals from adapter
+        candle_timeframes = adapter.get_candle_intervals()
+
+        for symbol, product_id in product_ids.items():
+            # REST endpoints
+            # Ticker endpoint
+            ticker_key = "GET /api/v4/spot/tickers"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # Order book endpoint
+            orderbook_key = "GET /api/v4/spot/order_book"
+            if orderbook_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[orderbook_key],
+                    'orderbook'
+                )
+
+            # Candlestick endpoint
+            candles_key = "GET /api/v4/spot/candlesticks"
+            if candles_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[candles_key],
+                    'candles'
+                )
+
+            # Trades endpoint
+            trades_key = "GET /api/v4/spot/trades"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} Gate.io products to feeds")
+
+    def _link_huobi_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Huobi products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: HuobiAdapter instance
+        """
+        logger.info("Linking Huobi products to feeds")
+
+        # Get candle intervals from adapter
+        candle_timeframes = adapter.get_candle_intervals()
+
+        for symbol, product_id in product_ids.items():
+            # REST endpoints
+            # Ticker endpoint (market/tickers)
+            ticker_key = "GET /market/tickers"
+            if ticker_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[ticker_key],
+                    'ticker'
+                )
+
+            # Order book endpoint
+            orderbook_key = "GET /market/depth"
+            if orderbook_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[orderbook_key],
+                    'orderbook'
+                )
+
+            # Candlestick endpoint
+            candles_key = "GET /market/history/kline"
+            if candles_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[candles_key],
+                    'candles'
+                )
+
+            # Trades endpoint
+            trades_key = "GET /market/history/trade"
+            if trades_key in endpoint_ids:
+                self.repository.link_product_to_endpoint(
+                    product_id,
+                    endpoint_ids[trades_key],
+                    'trades'
+                )
+
+            # WebSocket channels - all products support all channels
+            for channel_name, channel_id in channel_ids.items():
+                self.repository.link_product_to_ws_channel(
+                    product_id,
+                    channel_id
+                )
+
+        logger.info(f"Linked {len(product_ids)} Huobi products to feeds")

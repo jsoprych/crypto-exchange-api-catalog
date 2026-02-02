@@ -166,6 +166,127 @@ VENDORS = {
             "public_endpoints": True,
             "requires_api_key": False  # Phase 1: public only
         }
+    },
+    "okx": {
+        "enabled": True,
+        "display_name": "OKX Exchange",
+        "base_url": "https://www.okx.com",
+        "websocket_url": "wss://ws.okx.com:8443",
+        "documentation_url": "https://www.okx.com/docs/en/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "instruments": "/api/v5/public/instruments",
+            "time": "/api/v5/public/time",
+            "tickers": "/api/v5/market/tickers"
+        },
+        "rate_limits": {
+            "public": 20  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "kucoin": {
+        "enabled": True,
+        "display_name": "KuCoin Exchange",
+        "base_url": "https://api.kucoin.com",
+        "websocket_url": "wss://ws-api.kucoin.com/endpoint",
+        "documentation_url": "https://docs.kucoin.com/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "symbols": "/api/v1/symbols",
+            "time": "/api/v1/timestamp",
+            "tickers": "/api/v1/market/allTickers"
+        },
+        "rate_limits": {
+            "public": 20  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "gateio": {
+        "enabled": True,
+        "display_name": "Gate.io Exchange",
+        "base_url": "https://api.gateio.ws",
+        "websocket_url": "wss://ws.gateio.io/v3",
+        "documentation_url": "https://www.gate.io/docs/developers/apiv4/en/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "currency_pairs": "/api/v4/spot/currency_pairs",
+            "time": "/api/v4/spot/time",
+            "tickers": "/api/v4/spot/tickers"
+        },
+        "rate_limits": {
+            "public": 20  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "huobi": {
+        "enabled": True,
+        "display_name": "Huobi Exchange",
+        "base_url": "https://api.huobi.pro",
+        "websocket_url": "wss://api.huobi.pro/ws",
+        "documentation_url": "https://huobiapi.github.io/docs/spot/v1/en/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "symbols": "/v1/common/symbols",
+            "time": "/v1/common/timestamp",
+            "tickers": "/market/tickers"
+        },
+        "rate_limits": {
+            "public": 10  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "mexc": {
+        "enabled": True,
+        "display_name": "MEXC Exchange",
+        "base_url": "https://api.mexc.com",
+        "websocket_url": "wss://wbs.mexc.com/ws",
+        "documentation_url": "https://mexcdevelop.github.io/apidocs/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "exchange_info": "/api/v3/exchangeInfo",
+            "time": "/api/v3/time",
+            "tickers": "/api/v3/ticker/24hr"
+        },
+        "rate_limits": {
+            "public": 20  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "bitstamp": {
+        "enabled": True,
+        "display_name": "Bitstamp",
+        "base_url": "https://www.bitstamp.net/api/v2",
+        "websocket_url": "wss://ws.bitstamp.net",
+        "documentation_url": "https://www.bitstamp.net/api/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "trading_pairs": "/trading-pairs-info/",
+            "ticker": "/ticker/{currency_pair}/",
+            "order_book": "/order_book/{currency_pair}/",
+            "time": "/time/"
+        },
+        "rate_limits": {
+            "public": 10  # requests per second (approximate)
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
     }
 }
 
