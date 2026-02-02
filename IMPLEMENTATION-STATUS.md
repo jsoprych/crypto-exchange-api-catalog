@@ -57,8 +57,9 @@
 | MEXC     | 30.8% (4/13)  | 4  | ticker |
 | Bybit    | 46.2% (6/13)  | 6  | ticker |
 | Bitstamp | 61.5% (8/13)  | 13 | ticker, trade |
+| Bitget   | 84.6% (11/13) | 12 | ticker |
 
-**Total Mappings**: 130 field mappings across all 11 exchanges
+**Total Mappings**: 142 field mappings across all 12 exchanges
 
 ### **US ACCESS RESTRICTIONS RESEARCH REPORT**
 
@@ -77,6 +78,7 @@ Based on connectivity testing from US-based servers:
 | Bybit    | ❌ No | CloudFront blocking US access (403 Forbidden) |
 | MEXC     | ✅ Yes | Accessible from US (tested) |
 | Bitstamp | ✅ Yes | US-based exchange |
+| Bitget   | ✅ Yes | Accessible from US (tested) |
 
 **Key Findings:**
 1. **Bybit has strict US blocking** - All API endpoints return 403 Forbidden via CloudFront distribution
