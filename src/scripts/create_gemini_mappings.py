@@ -1,0 +1,528 @@
+#!/usr/bin/env python3
+"""
+Create Gemini WebSocket ticker field mappings to canonical fields.
+Maps Gemini-specific field names to industry-standard canonical field names.
+
+Gemini WebSocket format (level1 channel):
+{
+    "type": "update",
+    "symbol": "BTCUSD",
+    "changes": [
+        ["bid", "45000.00"],
+        ["ask", "45001.00"],
+        ["last", "45000.50"],
+        ["volume", "1500.25"]
+    ],
+    "trades": [
+        {
+            "tid": 123456,
+            "price": "45000.50",
+            "amount": "0.5",
+            "makerSide": "bid",
+            "timestamp": 1672531200
+        }
+    ]
+}
+
+Note: The 'changes' array contains field-value pairs. This requires
+special handling in the normalization engine.
+"""
+
+import argparse
+import sqlite3
+import json
+import sys
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from config.settings import DATABASE_PATH
+from src.utils.logger import setup_logging, get_logger
+
+# Setup logging
+setup_logging()
+logger = get_logger(__name__)
+
+
+class GeminiTickerMapper:
+    """
+    Maps Gemini WebSocket ticker fields to canonical fields.
+    """
+
+    def __init__(self, db_path: Path = DATABASE_PATH):
+        """
+        Initialize mapper with database path.
+
+        Args:
+            db_path: Path to SQLite database
+        """
+        self.db_path = db_path
+        self.conn = None
+
+    def connect(self):
+        """Establish database connection."""
+        if self.conn is None:
+            self.conn = sqlite3.connect(str(self.db_path))
+            self.conn.row_factory = sqlite3.Row
+            self.conn.execute("PRAGMA foreign_keys = ON")
+            logger.info(f"Connected to database: {self.db_path}")
+
+    def close(self):
+        """Close database connection."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
+            logger.info("Database connection closed")
+
+    def __enter__(self):
+        """Context manager entry."""
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit."""
+        self.close()
+
+    def get_vendor_id(self, vendor_name: str = 'gemini') -> Optional[int]:
+        """
+        Get vendor ID for Gemini.
+
+        Args:
+            vendor_name: Vendor name (default: 'gemini')
+
+        Returns:
+            vendor_id or None if not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT vendor_id FROM vendors WHERE vendor_name = ?",
+            (vendor_name,)
+        )
+        row = cursor.fetchone()
+        return row['vendor_id'] if row else None
+
+    def get_websocket_channel_id(self, vendor_id: int, channel_name: str = 'level1') -> Optional[int]:
+        """
+        Get WebSocket channel ID for level1 (ticker) channel.
+
+        Args:
+            vendor_id: Vendor ID
+            channel_name: Channel name (default: 'level1')
+
+        Returns:
+            channel_id or None if not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT channel_id FROM websocket_channels WHERE vendor_id = ? AND channel_name = ?",
+            (vendor_id, channel_name)
+        )
+        row = cursor.fetchone()
+        return row['channel_id'] if row else None
+
+    def get_canonical_field_id(self, field_name: str) -> Optional[int]:
+        """
+        Get canonical field ID by field name.
+
+        Args:
+            field_name: Canonical field name (e.g., 'bid_price')
+
+        Returns:
+            canonical_field_id or None if not found
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT canonical_field_id FROM canonical_fields WHERE field_name = ?",
+            (field_name,)
+        )
+        row = cursor.fetchone()
+        return row['canonical_field_id'] if row else None
+
+    def create_field_mapping(
+        self,
+        vendor_id: int,
+        canonical_field_id: int,
+        vendor_field_path: str,
+        channel_id: int,
+        entity_type: str = 'ticker',
+        transformation_rule: Optional[Dict] = None,
+        priority: int = 0
+    ) -> bool:
+        """
+        Create a field mapping entry.
+
+        Args:
+            vendor_id: Vendor ID
+            canonical_field_id: Canonical field ID
+            vendor_field_path: Vendor-specific field path
+            channel_id: WebSocket channel ID
+            entity_type: Data type (ticker, order_book, trade, candle)
+            transformation_rule: Optional transformation rules JSON
+            priority: Mapping priority (higher = preferred)
+
+        Returns:
+            True if mapping created or already exists, False on error
+        """
+        cursor = self.conn.cursor()
+
+        # Check if mapping already exists
+        cursor.execute("""
+            SELECT mapping_id FROM field_mappings
+            WHERE vendor_id = ? AND canonical_field_id = ?
+            AND vendor_field_path = ? AND channel_id = ?
+        """, (vendor_id, canonical_field_id, vendor_field_path, channel_id))
+
+        if cursor.fetchone():
+            logger.debug(f"Mapping already exists: {vendor_field_path} -> {canonical_field_id}")
+            return True
+
+        try:
+            cursor.execute("""
+                INSERT INTO field_mappings (
+                    vendor_id, canonical_field_id, source_type,
+                    entity_type, vendor_field_path, channel_id,
+                    transformation_rule, priority, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                vendor_id,
+                canonical_field_id,
+                'websocket',  # source_type
+                entity_type,
+                vendor_field_path,
+                channel_id,
+                json.dumps(transformation_rule) if transformation_rule else None,
+                priority,
+                True
+            ))
+            logger.info(f"Created mapping: {vendor_field_path} -> canonical field {canonical_field_id}")
+            return True
+        except sqlite3.Error as e:
+            logger.error(f"Failed to create mapping for {vendor_field_path}: {e}")
+            return False
+
+    def map_gemini_ticker_fields(self):
+        """
+        Map Gemini WebSocket ticker fields to canonical fields.
+
+        Gemini's level1 channel uses a 'changes' array with field-value pairs.
+        This presents a challenge for standard field mapping. We create mappings
+        with placeholder paths that may require custom transformation logic.
+
+        Returns:
+            Number of mappings created
+        """
+        logger.info("Starting Gemini ticker field mapping...")
+
+        # Get vendor and channel IDs
+        vendor_id = self.get_vendor_id('gemini')
+        if not vendor_id:
+            logger.error("Gemini vendor not found")
+            return 0
+
+        channel_id = self.get_websocket_channel_id(vendor_id, 'level1')
+        if not channel_id:
+            logger.error("Gemini level1 channel not found")
+            return 0
+
+        # Define mappings for Gemini level1 channel
+        # Format: (vendor_field_path, canonical_field_name, transformation_rule, entity_type, priority)
+        # Note: Gemini's 'changes' array format requires special handling
+        mappings = [
+            # Symbol field (direct mapping)
+            ('symbol', 'symbol', {'type': 'identity'}, 'ticker', 10),
+
+            # Price fields from changes array
+            # These require custom transformation to extract from changes array
+            ('changes', 'bid_price', {
+                'type': 'array_extract_by_field',
+                'field_name': 'bid',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            ('changes', 'ask_price', {
+                'type': 'array_extract_by_field',
+                'field_name': 'ask',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            ('changes', 'last_price', {
+                'type': 'array_extract_by_field',
+                'field_name': 'last',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            # Volume from changes array
+            ('changes', 'volume_24h', {
+                'type': 'array_extract_by_field',
+                'field_name': 'volume',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            ('changes', 'high_24h', {
+                'type': 'array_extract_by_field',
+                'field_name': 'high',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            ('changes', 'low_24h', {
+                'type': 'array_extract_by_field',
+                'field_name': 'low',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+
+            ('changes', 'open_24h', {
+                'type': 'array_extract_by_field',
+                'field_name': 'open',
+                'subtype': 'string_to_numeric'
+            }, 'ticker', 5),
+            # Trade data from trades array (last trade info)
+            ('trades[0].price', 'last_price', {'type': 'string_to_numeric'}, 'ticker', 3),
+            ('trades[0].amount', 'volume_24h', {'type': 'string_to_numeric'}, 'ticker', 3),
+
+            # Trade-specific fields (for trade entity type)
+            ('trades[0].tid', 'trade_id', {'type': 'string_to_integer'}, 'trade', 5),
+            ('trades[0].price', 'price', {'type': 'string_to_numeric'}, 'trade', 5),
+            ('trades[0].amount', 'size', {'type': 'string_to_numeric'}, 'trade', 5),
+            ('trades[0].makerSide', 'side', {'type': 'identity'}, 'trade', 5),
+            ('trades[0].timestamp', 'timestamp', {'type': 'integer_to_datetime'}, 'trade', 5),
+
+            # Message metadata
+            ('type', 'message_type', {'type': 'identity'}, 'common', 1),
+        ]
+
+        # Alternative simple mappings assuming fields might be at top level
+        # (some WebSocket implementations flatten the changes array)
+        simple_mappings = [
+            ('bid', 'bid_price', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('ask', 'ask_price', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('last', 'last_price', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('volume', 'volume_24h', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('high', 'high_24h', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('low', 'low_24h', {'type': 'string_to_numeric'}, 'ticker', 8),
+            ('open', 'open_24h', {'type': 'string_to_numeric'}, 'ticker', 8),
+        ]
+
+        created_count = 0
+        failed_count = 0
+
+        # Process primary mappings
+        for vendor_path, canonical_name, transform_rule, entity_type, priority in mappings:
+            # Get canonical field ID
+            canonical_field_id = self.get_canonical_field_id(canonical_name)
+            if not canonical_field_id:
+                logger.warning(f"Canonical field not found: {canonical_name}")
+                failed_count += 1
+                continue
+
+            # Create mapping
+            if self.create_field_mapping(
+                vendor_id=vendor_id,
+                canonical_field_id=canonical_field_id,
+                vendor_field_path=vendor_path,
+                channel_id=channel_id,
+                entity_type=entity_type,
+                transformation_rule=transform_rule,
+                priority=priority
+            ):
+                created_count += 1
+            else:
+                failed_count += 1
+
+        # Process simple mappings (as fallback)
+        for vendor_path, canonical_name, transform_rule, entity_type, priority in simple_mappings:
+            # Get canonical field ID
+            canonical_field_id = self.get_canonical_field_id(canonical_name)
+            if not canonical_field_id:
+                logger.debug(f"Canonical field not found for simple mapping: {canonical_name}")
+                continue  # Skip but don't count as failure
+
+            # Create mapping with lower priority (as fallback)
+            if self.create_field_mapping(
+                vendor_id=vendor_id,
+                canonical_field_id=canonical_field_id,
+                vendor_field_path=vendor_path,
+                channel_id=channel_id,
+                entity_type=entity_type,
+                transformation_rule=transform_rule,
+                priority=priority
+            ):
+                created_count += 1
+            else:
+                failed_count += 1
+
+        # Commit all mappings
+        self.conn.commit()
+
+        logger.info(f"Gemini ticker mapping complete: {created_count} created, {failed_count} failed")
+        return created_count
+
+    def verify_mappings(self) -> Dict[str, Any]:
+        """
+        Verify created mappings by querying the database.
+
+        Returns:
+            Dictionary with verification statistics
+        """
+        cursor = self.conn.cursor()
+
+        # Get vendor and channel IDs
+        vendor_id = self.get_vendor_id('gemini')
+        channel_id = self.get_websocket_channel_id(vendor_id, 'level1')
+
+        # Count total mappings for Gemini
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM field_mappings fm
+            JOIN canonical_fields cf ON fm.canonical_field_id = cf.canonical_field_id
+            WHERE fm.vendor_id = ?
+        """, (vendor_id,))
+
+        total_mappings = cursor.fetchone()['count']
+
+        # Count by entity type
+        cursor.execute("""
+            SELECT fm.entity_type, COUNT(*) as count
+            FROM field_mappings fm
+            WHERE fm.vendor_id = ?
+            GROUP BY fm.entity_type
+        """, (vendor_id,))
+
+        by_entity_type = {row['entity_type']: row['count'] for row in cursor.fetchall()}
+
+        # Get coverage statistics for ticker
+        cursor.execute("""
+            SELECT * FROM vendor_coverage_view
+            WHERE vendor_name = 'gemini' AND data_type_name = 'ticker'
+        """)
+
+        coverage_row = cursor.fetchone()
+        coverage = dict(coverage_row) if coverage_row else {}
+
+        return {
+            'total_mappings': total_mappings,
+            'by_entity_type': by_entity_type,
+            'coverage': coverage
+        }
+
+
+def main():
+    """Main entry point."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Map Gemini WebSocket ticker fields to canonical fields",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Create Gemini ticker mappings
+  python create_gemini_mappings.py
+
+  # Create mappings and verify results
+  python create_gemini_mappings.py --verify
+
+  # Dry run (show what would be mapped without actually creating)
+  python create_gemini_mappings.py --dry-run
+        """
+    )
+
+    parser.add_argument(
+        '--verify',
+        action='store_true',
+        help='Verify mappings after creation'
+    )
+
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be mapped without creating actual entries'
+    )
+
+    args = parser.parse_args()
+
+    with GeminiTickerMapper() as mapper:
+        if args.dry_run:
+            print("Dry run mode - would map the following fields:")
+            print("=" * 60)
+
+            # Get vendor and channel IDs for display
+            vendor_id = mapper.get_vendor_id('gemini')
+            channel_id = mapper.get_websocket_channel_id(vendor_id, 'level1')
+
+            print(f"Vendor: gemini (id={vendor_id})")
+            print(f"Channel: level1 (id={channel_id})")
+            print()
+
+            # Show what would be mapped
+            mappings_to_show = [
+                ('symbol', 'symbol', 'ticker', 'identity'),
+                ('changes', 'bid_price', 'ticker', 'array_extract_by_field (bid)'),
+                ('changes', 'ask_price', 'ticker', 'array_extract_by_field (ask)'),
+                ('changes', 'last_price', 'ticker', 'array_extract_by_field (last)'),
+                ('changes', 'volume_24h', 'ticker', 'array_extract_by_field (volume)'),
+                ('changes', 'high_24h', 'ticker', 'array_extract_by_field (high)'),
+                ('changes', 'low_24h', 'ticker', 'array_extract_by_field (low)'),
+                ('changes', 'open_24h', 'ticker', 'array_extract_by_field (open)'),
+                ('trades[0].price', 'last_price', 'ticker', 'string_to_numeric'),
+                ('trades[0].amount', 'volume_24h', 'ticker', 'string_to_numeric'),
+                ('trades[0].tid', 'trade_id', 'trade', 'string_to_integer'),
+                ('trades[0].price', 'price', 'trade', 'string_to_numeric'),
+                ('trades[0].amount', 'size', 'trade', 'string_to_numeric'),
+                ('trades[0].makerSide', 'side', 'trade', 'identity'),
+                ('trades[0].timestamp', 'timestamp', 'trade', 'integer_to_datetime'),
+                ('bid', 'bid_price', 'ticker', 'string_to_numeric (simple)'),
+                ('ask', 'ask_price', 'ticker', 'string_to_numeric (simple)'),
+                ('last', 'last_price', 'ticker', 'string_to_numeric (simple)'),
+                ('volume', 'volume_24h', 'ticker', 'string_to_numeric (simple)'),
+                ('high', 'high_24h', 'ticker', 'string_to_numeric (simple)'),
+                ('low', 'low_24h', 'ticker', 'string_to_numeric (simple)'),
+                ('open', 'open_24h', 'ticker', 'string_to_numeric (simple)'),
+            ]
+
+            for vendor_path, canonical_name, entity_type, transform_desc in mappings_to_show:
+                field_id = mapper.get_canonical_field_id(canonical_name)
+                status = "✓" if field_id else "✗ (field not found)"
+                print(f"{vendor_path:25} → {canonical_name:20} [{entity_type:10}] {transform_desc:30} {status}")
+
+            print()
+            print(f"Total: {len(mappings_to_show)} potential mappings")
+            print("\nNote: 'array_extract_by_field' transformation may require")
+            print("      extension of the normalization engine.")
+
+        else:
+            # Create mappings
+            created = mapper.map_gemini_ticker_fields()
+
+            if created > 0:
+                print(f"\n✓ Created {created} Gemini ticker field mappings")
+
+                if args.verify:
+                    print("\nVerification results:")
+                    print("=" * 60)
+
+                    stats = mapper.verify_mappings()
+
+                    print(f"Total mappings: {stats['total_mappings']}")
+
+                    if stats['by_entity_type']:
+                        print("\nBy entity type:")
+                        for entity_type, count in stats['by_entity_type'].items():
+                            print(f"  {entity_type}: {count}")
+
+                    if stats.get('coverage'):
+                        cov = stats['coverage']
+                        print(f"\nCoverage for ticker data type:")
+                        print(f"  Fields defined: {cov.get('fields_defined', 'N/A')}")
+                        print(f"  Fields mapped: {cov.get('fields_mapped', 'N/A')}")
+                        print(f"  Coverage: {cov.get('coverage_percent', 'N/A')}%")
+
+                    print()
+            else:
+                print("\n✗ No mappings were created")
+                sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

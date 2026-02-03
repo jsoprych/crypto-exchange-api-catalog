@@ -331,6 +331,111 @@ VENDORS = {
             "requires_api_key": False,  # Phase 1: public only
         }
     },
+    "crypto_com": {
+        "enabled": True,
+        "display_name": "Crypto.com Exchange",
+        "base_url": "https://api.crypto.com/exchange/v1",
+        "websocket_url": "wss://stream.crypto.com/exchange/v1/market",
+        "documentation_url": "https://exchange-docs.crypto.com/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/public/get-instruments",
+            "tickers": "/public/get-tickers",
+            "order_book": "/public/get-book",
+            "trades": "/public/get-trades",
+            "candlestick": "/public/get-candlestick"
+        },
+        "rate_limits": {
+            "public": 100  # Based on documentation: 100 requests per second for public market data
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "gemini": {
+        "enabled": True,
+        "display_name": "Gemini Exchange",
+        "base_url": "https://api.gemini.com/v1",
+        "websocket_url": "wss://api.gemini.com/v1/marketdata",
+        "documentation_url": "https://docs.gemini.com/rest-api/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/symbols",
+            "pricefeed": "/pricefeed",  # Current prices for all pairs
+            "pubticker": "/pubticker/{symbol}",  # Ticker for specific symbol
+            "book": "/book/{symbol}",  # Order book for specific symbol
+            "trades": "/trades/{symbol}",  # Recent trades for specific symbol
+            "symbol_details": "/symbols/details/{symbol}"  # Symbol details
+        },
+        "rate_limits": {
+            "public": 20  # Based on documentation: 20 requests per minute
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "poloniex": {
+        "enabled": True,
+        "display_name": "Poloniex Exchange",
+        "base_url": "https://api.poloniex.com",
+        "websocket_url": "wss://ws.poloniex.com/ws",
+        "documentation_url": "https://docs.poloniex.com",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/markets",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "deribit": {
+        "enabled": True,
+        "display_name": "Deribit Exchange",
+        "base_url": "https://www.deribit.com/api/v2",
+        "websocket_url": "wss://www.deribit.com/ws/api/v2",
+        "documentation_url": "https://docs.deribit.com",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/public/get_instruments",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "phemex": {
+        "enabled": True,
+        "display_name": "Phemex Exchange",
+        "base_url": "https://api.phemex.com",
+        "websocket_url": "wss://ws.phemex.com",
+        "documentation_url": "https://github.com/phemex/phemex-api-docs",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/public/products",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
 }
 
 # Discovery process configuration

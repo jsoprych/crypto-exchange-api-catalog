@@ -23,6 +23,11 @@ from src.adapters.mexc_adapter import MexcAdapter
 from src.adapters.bitstamp_adapter import BitstampAdapter
 from src.adapters.bitget_adapter import BitgetAdapter
 from src.adapters.bitmart_adapter import BitmartAdapter
+from src.adapters.crypto_com_adapter import Crypto_comAdapter
+from src.adapters.gemini_adapter import GeminiAdapter
+from src.adapters.poloniex_adapter import PoloniexAdapter
+from src.adapters.deribit_adapter import DeribitAdapter
+from src.adapters.phemex_adapter import PhemexAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -189,6 +194,16 @@ class SpecificationGenerator:
             return BitgetAdapter(vendor_config)
         elif vendor_name == 'bitmart':
             return BitmartAdapter(vendor_config)
+        elif vendor_name == 'crypto_com':
+            return Crypto_comAdapter(vendor_config)
+        elif vendor_name == 'gemini':
+            return GeminiAdapter(vendor_config)
+        elif vendor_name == 'poloniex':
+            return PoloniexAdapter(vendor_config)
+        elif vendor_name == 'deribit':
+            return DeribitAdapter(vendor_config)
+                elif vendor_name == 'phemex':
+            return PhemexAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -1118,5 +1133,192 @@ class SpecificationGenerator:
                     product_id,
                     channel_id
                 )
+    def _link_crypto_com_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Crypto_com products to their available endpoints and channels.
 
-        logger.info(f"Linked {len(product_ids)} Bitmart products to feeds")
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: Crypto_comAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Crypto_com products to feeds")
+
+        # TODO: Implement Crypto_com-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_gemini_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Gemini products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: GeminiAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Gemini products to feeds")
+
+        # TODO: Implement Gemini-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_poloniex_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Poloniex products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: PoloniexAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Poloniex products to feeds")
+    def _link_deribit_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Deribit products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: DeribitAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Deribit products to feeds")
+
+        # TODO: Implement Deribit-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_phemex_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Phemex products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: PhemexAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Phemex products to feeds")
+
+        # TODO: Implement Phemex-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+
+        # TODO: Implement Poloniex-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass

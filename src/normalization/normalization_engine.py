@@ -491,6 +491,24 @@ class NormalizationEngine:
                         return element
                 return None
 
+            elif transform_type == 'array_extract_by_field':
+                # Extract value from array of field-value pairs
+                # Expects array like [["field1", "value1"], ["field2", "value2"]]
+                if isinstance(value, list):
+                    field_name = rule.get('field_name')
+                    if field_name:
+                        for item in value:
+                            if isinstance(item, list) and len(item) >= 2:
+                                if str(item[0]) == field_name:
+                                    element = item[1]
+                                    # Apply subtype transformation if specified
+                                    subtype = rule.get('subtype')
+                                    if subtype:
+                                        subtype_rule = {'type': subtype}
+                                        return self._apply_transformation(element, subtype_rule, data_type)
+                                    return element
+                return None
+
             elif transform_type == 'scale':
                 if isinstance(value, (int, float)):
                     factor = rule.get('factor', 1.0)

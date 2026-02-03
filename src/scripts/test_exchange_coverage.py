@@ -297,6 +297,49 @@ def create_exchange_sample_data(
                 }
             }
 
+    elif exchange_name == 'crypto_com':
+        if data_type == 'ticker':
+            return {
+                "e": "ticker",
+                "E": base_values['timestamp_ms'],  # Event time
+                "s": base_values['symbol'],
+                "p": "210.50",  # Price change
+                "P": "0.49",    # Price change percent
+                "c": str(base_values['last_price']),  # Last price
+                "v": str(base_values['volume_24h']),  # Base volume
+                "q": "53245678.90",  # Quote volume
+                "h": str(base_values['high_24h']),    # 24h high (optional)
+                "l": str(base_values['low_24h']),     # 24h low (optional)
+                "b": str(base_values['bid_price']),   # Best bid (optional)
+                "k": str(base_values['ask_price']),   # Best ask (optional)
+                "oi": "1234.56",  # Open interest (optional)
+            }
+
+    elif exchange_name == 'gemini':
+        if data_type == 'ticker':
+            return {
+                "type": "update",
+                "symbol": base_values['symbol'],
+                "changes": [
+                    ["bid", str(base_values['bid_price'])],
+                    ["ask", str(base_values['ask_price'])],
+                    ["last", str(base_values['last_price'])],
+                    ["volume", str(base_values['volume_24h'])],
+                    ["high", str(base_values['high_24h'])],
+                    ["low", str(base_values['low_24h'])],
+                    ["open", str(base_values['open_24h'])]
+                ],
+                "trades": [
+                    {
+                        "tid": 123456,
+                        "price": str(base_values['last_price']),
+                        "amount": "0.5",
+                        "makerSide": "bid",
+                        "timestamp": 1672531200
+                    }
+                ]
+            }
+
     # Default/fallback sample (minimal structure)
     return {
         "symbol": base_values['symbol'],

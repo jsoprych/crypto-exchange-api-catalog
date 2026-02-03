@@ -1,0 +1,978 @@
+# src/adapters/gemini_adapter.py
+"""
+Gemini Exchange API adapter.
+
+This adapter implements the Gemini Exchange REST and WebSocket APIs
+based on official documentation: https://docs.gemini.com/rest-api/
+
+Key Features:
+- US-regulated cryptocurrency exchange
+- REST API v1 and v2 endpoints
+- WebSocket market data API
+- Support for spot and perpetual swap products
+"""
+
+from typing import Dict, List, Any, Optional
+from src.adapters.base_adapter import BaseVendorAdapter
+from src.utils.logger import get_logger
+import requests
+import json
+
+logger = get_logger(__name__)
+
+
+class GeminiAdapter(BaseVendorAdapter):
+    """
+    Gemini Exchange API adapter implementation.
+
+    Official Documentation:
+    - REST API: https://docs.gemini.com/rest-api/
+    - WebSocket: https://docs.gemini.com/websocket-api/market-data/
+    """
+
+    def discover_rest_endpoints(self) -> List[Dict[str, Any]]:
+        """
+        Discover Gemini REST API endpoints.
+
+        Based on official documentation: https://docs.gemini.com/rest-api/
+
+        Implementation Strategy:
+        1. Include all public market data endpoints from v1 and v2 APIs
+        2. Document authentication requirements (mostly public)
+        3. Include query parameters and response schemas
+        4. Note rate limits from documentation: 20 requests per minute
+
+        Returns:
+            List of endpoint dictionaries with standard structure
+        """
+        logger.info("Discovering Gemini REST endpoints")
+
+        endpoints = []
+
+        # ============================================================================
+        # 1. MARKET DATA ENDPOINTS (Public - No Authentication Required)
+        # ============================================================================
+
+        # Product/Instrument information endpoints
+        product_endpoints = [
+            {
+                "path": "/symbols",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get all available symbols for trading",
+                "query_parameters": {},
+                "response_schema": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "List of trading pair symbols"
+                },
+                "rate_limit_tier": "public"
+            },
+            {
+                "path": "/symbols/details/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get detailed information for a specific symbol",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol (e.g., BTCUSD)"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {"type": "string", "description": "The requested symbol"},
+                        "base_currency": {"type": "string", "description": "CCY1 or the top currency"},
+                        "quote_currency": {"type": "string", "description": "CCY2 or the quote currency"},
+                        "tick_size": {"type": "number", "description": "Number of decimal places in base_currency"},
+                        "quote_increment": {"type": "number", "description": "Number of decimal places in quote_currency"},
+                        "min_order_size": {"type": "string", "description": "Minimum order size in base_currency units"},
+                        "status": {"type": "string", "description": "Status of order book (open, closed, cancel_only, etc.)"},
+                        "wrap_enabled": {"type": "boolean", "description": "Whether symbol can be wrapped"},
+                        "product_type": {"type": "string", "description": "Instrument type (spot or swap)"},
+                        "contract_type": {"type": "string", "description": "Contract type (vanilla, linear, inverse)"},
+                        "contract_price_currency": {"type": "string", "description": "Quote currency for spot or collateral currency for perpetual"}
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(product_endpoints)
+
+        # Ticker/price data endpoints
+        ticker_endpoints = [
+            {
+                "path": "/pubticker/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get ticker information for a specific symbol",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol (e.g., BTCUSD)"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "bid": {"type": "string", "description": "Highest bid currently available"},
+                        "ask": {"type": "string", "description": "Lowest ask currently available"},
+                        "last": {"type": "string", "description": "Price of the last executed trade"},
+                        "volume": {
+                            "type": "object",
+                            "properties": {
+                                "BTC": {"type": "string", "description": "24h volume in base currency"},
+                                "USD": {"type": "string", "description": "24h volume in quote currency"},
+                                "timestamp": {"type": "integer", "description": "Volume calculation timestamp"}
+                            }
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+            {
+                "path": "/v2/ticker/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get enhanced ticker information (v2 API)",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {"type": "string", "description": "Trading pair symbol"},
+                        "open": {"type": "string", "description": "Open price from 24 hours ago"},
+                        "high": {"type": "string", "description": "High price from 24 hours ago"},
+                        "low": {"type": "string", "description": "Low price from 24 hours ago"},
+                        "close": {"type": "string", "description": "Close price (most recent trade)"},
+                        "changes": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Hourly prices descending for past 24 hours"
+                        },
+                        "bid": {"type": "string", "description": "Current best bid"},
+                        "ask": {"type": "string", "description": "Current best offer"}
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+            {
+                "path": "/pricefeed",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get current prices for all trading pairs",
+                "query_parameters": {},
+                "response_schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "pair": {"type": "string", "description": "Trading pair symbol"},
+                            "price": {"type": "string", "description": "Current price of the pair"},
+                            "percentChange24h": {"type": "string", "description": "24 hour price change percentage"}
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(ticker_endpoints)
+
+        # Order book endpoints
+        order_book_endpoints = [
+            {
+                "path": "/book/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get current order book (bids and asks)",
+                "query_parameters": {
+                    "limit_bids": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Limit number of bid levels (default: 50, 0 = full book)",
+                        "default": 50,
+                        "minimum": 0
+                    },
+                    "limit_asks": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Limit number of ask levels (default: 50, 0 = full book)",
+                        "default": 50,
+                        "minimum": 0
+                    }
+                },
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "bids": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "price": {"type": "string", "description": "Bid price"},
+                                    "amount": {"type": "string", "description": "Bid amount"},
+                                    "timestamp": {"type": "string", "description": "Bid timestamp"}
+                                }
+                            }
+                        },
+                        "asks": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "price": {"type": "string", "description": "Ask price"},
+                                    "amount": {"type": "string", "description": "Ask amount"},
+                                    "timestamp": {"type": "string", "description": "Ask timestamp"}
+                                }
+                            }
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(order_book_endpoints)
+
+        # Trade history endpoints
+        trade_endpoints = [
+            {
+                "path": "/trades/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get recent trades for a symbol (up to 7 days history)",
+                "query_parameters": {
+                    "timestamp": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Only return trades after this timestamp (milliseconds)"
+                    },
+                    "since_tid": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Only returns trades that executed after this trade ID"
+                    },
+                    "limit_trades": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Maximum number of trades to return (default: 50)",
+                        "default": 50,
+                        "minimum": 0
+                    },
+                    "include_breaks": {
+                        "type": "boolean",
+                        "required": False,
+                        "description": "Whether to display broken trades (default: false)",
+                        "default": False
+                    }
+                },
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol"
+                    }
+                },
+                "response_schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "timestamp": {"type": "integer", "description": "Trade timestamp (seconds)"},
+                            "timestampms": {"type": "integer", "description": "Trade timestamp (milliseconds)"},
+                            "tid": {"type": "integer", "description": "Trade ID number"},
+                            "price": {"type": "string", "description": "Trade execution price"},
+                            "amount": {"type": "string", "description": "Amount traded"},
+                            "exchange": {"type": "string", "description": "Always 'gemini'"},
+                            "type": {"type": "string", "description": "Trade type (buy or sell)"},
+                            "broken": {"type": "boolean", "description": "Whether trade was broken"}
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(trade_endpoints)
+
+        # Candlestick data endpoints
+        candle_endpoints = [
+            {
+                "path": "/v2/candles/{symbol}/{time_frame}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get candlestick data for a symbol",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Trading pair symbol"
+                    },
+                    "time_frame": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Time frame (1m, 5m, 15m, 30m, 1h, 6h, 1d)",
+                        "enum": ["1m", "5m", "15m", "30m", "1h", "6h", "1d"]
+                    }
+                },
+                "response_schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": [
+                            {"type": "integer", "description": "Timestamp (milliseconds)"},
+                            {"type": "number", "description": "Open price"},
+                            {"type": "number", "description": "High price"},
+                            {"type": "number", "description": "Low price"},
+                            {"type": "number", "description": "Close price"},
+                            {"type": "number", "description": "Volume"}
+                        ],
+                        "minItems": 6,
+                        "maxItems": 6
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+            {
+                "path": "/v2/derivatives/candles/{symbol}/{time_frame}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get candlestick data for perpetual swap symbols",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Perpetual pair symbol (e.g., BTCGUSDPERP)"
+                    },
+                    "time_frame": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Time frame (1m only for derivatives)",
+                        "enum": ["1m"]
+                    }
+                },
+                "response_schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": [
+                            {"type": "integer", "description": "Timestamp (milliseconds)"},
+                            {"type": "number", "description": "Open price"},
+                            {"type": "number", "description": "High price"},
+                            {"type": "number", "description": "Low price"},
+                            {"type": "number", "description": "Close price"},
+                            {"type": "number", "description": "Volume"}
+                        ],
+                        "minItems": 6,
+                        "maxItems": 6
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(candle_endpoints)
+
+        # Funding data endpoints (for perpetual swaps)
+        funding_endpoints = [
+            {
+                "path": "/fundingamount/{symbol}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get funding amount information for perpetual swap symbols",
+                "query_parameters": {},
+                "path_parameters": {
+                    "symbol": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Perpetual pair symbol (e.g., BTCGUSDPERP)"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": {"type": "string", "description": "Requested symbol"},
+                        "fundingDateTime": {"type": "string", "description": "Funding date time in UTC format"},
+                        "fundingTimestampMilliSecs": {"type": "integer", "description": "Current funding amount epoch time"},
+                        "nextFundingTimestamp": {"type": "integer", "description": "Next funding amount epoch time"},
+                        "fundingAmount": {"type": "number", "description": "Dollar amount for Long 1 position"},
+                        "estimatedFundingAmount": {"type": "number", "description": "Estimated dollar amount for next funding period"}
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(funding_endpoints)
+
+        # Additional utility endpoints
+        utility_endpoints = [
+            {
+                "path": "/network/{token}",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get supported blockchain networks for a token",
+                "query_parameters": {},
+                "path_parameters": {
+                    "token": {
+                        "type": "string",
+                        "required": True,
+                        "description": "Token identifier (BTC, ETH, USDC, etc.)"
+                    }
+                },
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "token": {"type": "string", "description": "Requested token identifier"},
+                        "network": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Array of supported blockchain networks"
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+            {
+                "path": "/feepromos",
+                "method": "GET",
+                "authentication_required": False,
+                "description": "Get symbols that currently have fee promotions",
+                "query_parameters": {},
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "symbols": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Symbols with current fee promotions"
+                        }
+                    }
+                },
+                "rate_limit_tier": "public"
+            },
+        ]
+        endpoints.extend(utility_endpoints)
+
+        logger.info(f"Discovered {len(endpoints)} REST endpoints")
+        return endpoints
+
+    def discover_websocket_channels(self) -> List[Dict[str, Any]]:
+        """
+        Discover Gemini WebSocket channels and message formats.
+
+        Based on Gemini WebSocket Market Data API documentation.
+
+        Implementation Strategy:
+        1. Map market data channels from documentation
+        2. Include subscribe/unsubscribe message formats
+        3. Document message types and schemas
+        4. Note authentication requirements (public channels)
+
+        Returns:
+            List of WebSocket channel dictionaries
+        """
+        logger.info("Discovering Gemini WebSocket channels")
+
+        channels = []
+
+        # ============================================================================
+        # 1. MARKET DATA CHANNELS (Public)
+        # ============================================================================
+
+        # Level 1 (ticker) channel
+        channels.append({
+            "channel_name": "level1",
+            "authentication_required": False,
+            "description": "Level 1 market data (best bid/ask, last trade)",
+            "subscribe_format": {
+                "type": "subscribe",
+                "symbols": ["<symbol>"],  # Replace <symbol> with actual pair
+                "name": "level1"
+            },
+            "unsubscribe_format": {
+                "type": "unsubscribe",
+                "symbols": ["<symbol>"],
+                "name": "level1"
+            },
+            "message_types": ["update", "subscription"],
+            "message_schema": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "description": "Message type (update or subscription)"},
+                    "symbol": {"type": "string", "description": "Trading pair symbol"},
+                    "changes": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": [
+                                {"type": "string", "description": "Field name"},
+                                {"type": "string", "description": "New value"}
+                            ],
+                            "minItems": 2,
+                            "maxItems": 2
+                        },
+                        "description": "Array of field changes"
+                    },
+                    "trades": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tid": {"type": "integer", "description": "Trade ID"},
+                                "price": {"type": "string", "description": "Trade price"},
+                                "amount": {"type": "string", "description": "Trade amount"},
+                                "makerSide": {"type": "string", "description": "Maker side (bid or ask)"},
+                                "timestamp": {"type": "integer", "description": "Trade timestamp"}
+                            }
+                        },
+                        "description": "Recent trades (if included)"
+                    }
+                }
+            },
+            "vendor_metadata": {
+                "channel_pattern": "level1",
+                "supports_multiple_symbols": True,
+                "update_frequency": "real-time",
+                "data_included": ["best_bid", "best_ask", "last_trade", "volume"]
+            }
+        })
+
+        # Level 2 (order book) channel
+        channels.append({
+            "channel_name": "level2",
+            "authentication_required": False,
+            "description": "Level 2 order book updates (full depth)",
+            "subscribe_format": {
+                "type": "subscribe",
+                "symbols": ["<symbol>"],
+                "name": "level2"
+            },
+            "unsubscribe_format": {
+                "type": "unsubscribe",
+                "symbols": ["<symbol>"],
+                "name": "level2"
+            },
+            "message_types": ["update", "snapshot", "subscription"],
+            "message_schema": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "description": "Message type (update, snapshot, or subscription)"},
+                    "symbol": {"type": "string", "description": "Trading pair symbol"},
+                    "bids": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": [
+                                {"type": "string", "description": "Price"},
+                                {"type": "string", "description": "Size"}
+                            ],
+                            "minItems": 2,
+                            "maxItems": 2
+                        },
+                        "description": "Bid price levels"
+                    },
+                    "asks": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": [
+                                {"type": "string", "description": "Price"},
+                                {"type": "string", "description": "Size"}
+                            ],
+                            "minItems": 2,
+                            "maxItems": 2
+                        },
+                        "description": "Ask price levels"
+                    },
+                    "eventId": {"type": "integer", "description": "Event sequence ID"},
+                    "timestamp": {"type": "integer", "description": "Message timestamp"}
+                }
+            },
+            "vendor_metadata": {
+                "channel_pattern": "level2",
+                "supports_multiple_symbols": True,
+                "update_frequency": "real-time",
+                "data_included": ["full_order_book", "price_levels"]
+            }
+        })
+
+        # Trades channel
+        channels.append({
+            "channel_name": "trades",
+            "authentication_required": False,
+            "description": "Real-time trade executions",
+            "subscribe_format": {
+                "type": "subscribe",
+                "symbols": ["<symbol>"],
+                "name": "trades"
+            },
+            "unsubscribe_format": {
+                "type": "unsubscribe",
+                "symbols": ["<symbol>"],
+                "name": "trades"
+            },
+            "message_types": ["trade", "subscription"],
+            "message_schema": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "description": "Message type (trade or subscription)"},
+                    "symbol": {"type": "string", "description": "Trading pair symbol"},
+                    "tid": {"type": "integer", "description": "Trade ID"},
+                    "price": {"type": "string", "description": "Trade price"},
+                    "amount": {"type": "string", "description": "Trade amount"},
+                    "makerSide": {"type": "string", "description": "Maker side (bid or ask)"},
+                    "timestamp": {"type": "integer", "description": "Trade timestamp"}
+                }
+            },
+            "vendor_metadata": {
+                "channel_pattern": "trades",
+                "supports_multiple_symbols": True,
+                "update_frequency": "real-time",
+                "data_included": ["trade_executions", "price", "volume", "side"]
+            }
+        })
+
+        # Heartbeat channel (for connection health)
+        channels.append({
+            "channel_name": "heartbeat",
+            "authentication_required": False,
+            "description": "Connection heartbeat/ping-pong messages",
+            "subscribe_format": {
+                "type": "subscribe",
+                "name": "heartbeat"
+            },
+            "unsubscribe_format": {
+                "type": "unsubscribe",
+                "name": "heartbeat"
+            },
+            "message_types": ["heartbeat"],
+            "message_schema": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string", "description": "Always 'heartbeat'"},
+                    "timestamp": {"type": "integer", "description": "Current server timestamp"}
+                }
+            },
+            "vendor_metadata": {
+                "channel_pattern": "heartbeat",
+                "supports_multiple_symbols": False,
+                "update_frequency": "periodic",
+                "data_included": ["connection_health"]
+            }
+        })
+
+        logger.info(f"Discovered {len(channels)} WebSocket channels")
+        return channels
+
+    def _extract_base_asset(self, symbol: str) -> str:
+        """
+        Extract base asset from Gemini symbol.
+
+        Gemini symbols are typically formatted as BASEQUOTE or BASEGUSD (for perpetuals).
+        Examples: BTCUSD, ETHGUSD, BTCGUSDPERP
+
+        Args:
+            symbol: Gemini trading symbol
+
+        Returns:
+            Base asset ticker
+        """
+        symbol_upper = symbol.upper()
+
+        # Handle perpetual symbols (end with PERP)
+        if symbol_upper.endswith('PERP'):
+            # Remove PERP suffix first
+            symbol_no_perp = symbol_upper[:-4]
+            # Check if it's GUSD pair (e.g., BTCGUSDPERP -> BTC)
+            if symbol_no_perp.endswith('GUSD'):
+                return symbol_no_perp[:-4]
+            else:
+                # Try to extract base asset by removing quote
+                # Common quote currencies: USD, EUR, GBP, SGD, BTC, ETH, USDT, GUSD
+                quote_currencies = ['USD', 'EUR', 'GBP', 'SGD', 'BTC', 'ETH', 'USDT', 'GUSD']
+                for quote in quote_currencies:
+                    if symbol_no_perp.endswith(quote):
+                        return symbol_no_perp[:-len(quote)]
+
+        # Handle regular spot symbols
+        quote_currencies = ['USD', 'EUR', 'GBP', 'SGD', 'BTC', 'ETH', 'USDT', 'GUSD']
+        for quote in quote_currencies:
+            if symbol_upper.endswith(quote):
+                return symbol_upper[:-len(quote)]
+
+        # Fallback: try to split by known patterns
+        if 'BTC' in symbol_upper:
+            return 'BTC'
+        elif 'ETH' in symbol_upper:
+            return 'ETH'
+        elif 'USDT' in symbol_upper:
+            return 'USDT'
+        elif 'USDC' in symbol_upper:
+            return 'USDC'
+
+        # Default: return first 3-4 characters
+        return symbol_upper[:3] if len(symbol_upper) >= 3 else symbol_upper
+
+    def _extract_quote_asset(self, symbol: str) -> str:
+        """
+        Extract quote asset from Gemini symbol.
+
+        Args:
+            symbol: Gemini trading symbol
+
+        Returns:
+            Quote asset ticker
+        """
+        symbol_upper = symbol.upper()
+
+        # Handle perpetual symbols
+        if symbol_upper.endswith('PERP'):
+            symbol_no_perp = symbol_upper[:-4]
+            if symbol_no_perp.endswith('GUSD'):
+                return 'GUSD'
+
+        # Common quote currencies
+        quote_currencies = ['USD', 'EUR', 'GBP', 'SGD', 'BTC', 'ETH', 'USDT', 'GUSD']
+        for quote in quote_currencies:
+            if symbol_upper.endswith(quote):
+                return quote
+
+        # Fallback
+        if 'USD' in symbol_upper:
+            return 'USD'
+        elif 'USDT' in symbol_upper:
+            return 'USDT'
+        elif 'BTC' in symbol_upper:
+            return 'BTC'
+        elif 'ETH' in symbol_upper:
+            return 'ETH'
+
+        return 'USD'  # Default
+
+    def _determine_product_type(self, symbol: str) -> str:
+        """
+        Determine product type (spot or perpetual) from symbol.
+
+        Args:
+            symbol: Gemini trading symbol
+
+        Returns:
+            Product type: 'spot' or 'perpetual'
+        """
+        symbol_upper = symbol.upper()
+        if symbol_upper.endswith('PERP'):
+            return 'perpetual'
+        return 'spot'
+
+    def _determine_contract_type(self, symbol: str) -> str:
+        """
+        Determine contract type from symbol.
+
+        Args:
+            symbol: Gemini trading symbol
+
+        Returns:
+            Contract type: 'vanilla', 'linear', or 'inverse'
+        """
+        symbol_upper = symbol.upper()
+        if symbol_upper.endswith('PERP'):
+            # Gemini perpetuals are typically linear contracts
+            return 'linear'
+        return 'vanilla'
+
+    def _map_gemini_status(self, gemini_status: str) -> str:
+        """
+        Map Gemini status to database status values.
+
+        Gemini status values: 'open', 'closed', 'cancel_only', 'post_only', 'limit_only'
+        Database status values: 'online', 'offline', 'delisted'
+
+        Args:
+            gemini_status: Gemini status string
+
+        Returns:
+            Mapped database status string
+        """
+        status_map = {
+            'open': 'online',
+            'closed': 'offline',
+            'cancel_only': 'offline',
+            'post_only': 'online',  # Limited but still online
+            'limit_only': 'online',  # Limited but still online
+        }
+        return status_map.get(gemini_status.lower(), 'offline')
+
+    def discover_products(self) -> List[Dict[str, Any]]:
+        """
+        Discover Gemini trading products from live API.
+
+        Fetches products from /v1/symbols endpoint and enriches with details.
+
+        Implementation Strategy:
+        1. Fetch all symbols from /v1/symbols
+        2. Optionally fetch details for each symbol
+        3. Normalize product structure
+        4. Include both spot and perpetual swap products
+
+        Returns:
+            List of product dictionaries
+        """
+        logger.info("Discovering Gemini products from live API")
+
+        try:
+            # Fetch all symbols
+            symbols_url = f"{self.base_url}/symbols"
+            logger.debug(f"Fetching symbols from: {symbols_url}")
+
+            symbols = self.http_client.get(symbols_url)
+
+            if not isinstance(symbols, list):
+                logger.error(f"Unexpected response format from /symbols: {type(symbols)}")
+                return []
+
+            products = []
+
+            # Process each symbol (limited for performance)
+            max_products = 50  # Simple limit for testing
+            if len(symbols) > max_products:
+                logger.info(f"Limiting product discovery to {max_products} of {len(symbols)} total symbols")
+                symbols = symbols[:max_products]
+
+            for i, symbol in enumerate(symbols):
+                try:
+                    # Create basic product structure
+                    product = {
+                        "symbol": symbol,
+                        "base_asset": self._extract_base_asset(symbol),
+                        "quote_asset": self._extract_quote_asset(symbol),
+                        "product_type": self._determine_product_type(symbol),
+                        "contract_type": self._determine_contract_type(symbol),
+                        "status": "online",  # Default, can be updated with details
+                        "vendor_metadata": {
+                            "symbol_lowercase": symbol.lower(),
+                            "is_perpetual": symbol.upper().endswith('PERP')
+                        }
+                    }
+
+                    # Try to fetch detailed information (but don't fail if it times out)
+                    try:
+                        details_url = f"{self.base_url}/symbols/details/{symbol}"
+                        details = self.http_client.get(details_url)
+                        if details and isinstance(details, dict):
+                            product.update({
+                                "base_currency": details.get("base_currency"),
+                                "quote_currency": details.get("quote_currency"),
+                                "tick_size": details.get("tick_size"),
+                                "quote_increment": details.get("quote_increment"),
+                                "min_order_size": details.get("min_order_size"),
+                                "status": self._map_gemini_status(details.get("status", "open")),
+                                "wrap_enabled": details.get("wrap_enabled", False),
+                                "product_type": details.get("product_type", product["product_type"]),
+                                "contract_type": details.get("contract_type", product["contract_type"]),
+                                "contract_price_currency": details.get("contract_price_currency")
+                            })
+                            logger.debug(f"Fetched details for {symbol}")
+                    except Exception as e:
+                        logger.debug(f"Could not fetch details for {symbol}: {e}")
+                        # Continue with basic product info
+
+                    # Add product to list
+                    products.append(product)
+
+                    # Log progress periodically
+                    if (i + 1) % 50 == 0 or (i + 1) == len(symbols):
+                        logger.info(f"Processed {i + 1}/{len(symbols)} symbols")
+
+                except Exception as e:
+                    logger.warning(f"Failed to process symbol {symbol}: {e}")
+                    continue
+
+            logger.info(f"Discovered {len(products)} products")
+            return products
+
+        except Exception as e:
+            logger.error(f"Failed to discover products: {e}")
+            # Re-raise to ensure discovery run is marked as failed
+            raise Exception(f"Product discovery failed for Gemini: {e}")
+
+    def get_candle_intervals(self) -> List[int]:
+        """
+        Get available candle intervals for this exchange.
+
+        Returns:
+            List of granularity values in seconds
+        """
+        # Gemini supports: 1m, 5m, 15m, 30m, 1h, 6h, 1d
+        intervals_in_seconds = [60, 300, 900, 1800, 3600, 21600, 86400]
+        return intervals_in_seconds
+
+    def validate_endpoint(self, endpoint: Dict[str, Any]) -> bool:
+        """
+        Validate that an endpoint is accessible (optional override).
+
+        Can be used to test endpoints during discovery.
+
+        Args:
+            endpoint: Endpoint dictionary
+
+        Returns:
+            True if endpoint is accessible, False otherwise
+        """
+        try:
+            url = self.base_url + endpoint['path']
+
+            # Test with minimal parameters
+            test_params = {}
+            if 'query_parameters' in endpoint:
+                # Build minimal valid parameters for testing
+                for param_name, param_info in endpoint['query_parameters'].items():
+                    if param_info.get('required', False):
+                        # Provide dummy/default value for required parameters
+                        if param_info.get('type') == 'string':
+                            test_params[param_name] = 'test'
+                        elif param_info.get('type') == 'integer':
+                            test_params[param_name] = 1
+                        elif 'enum' in param_info:
+                            test_params[param_name] = param_info['enum'][0]
+
+            # Make test request
+            import requests
+            response = self.http_client.get(url, params=test_params)
+            return response.status_code == 200
+
+        except Exception as e:
+            logger.debug(f"Endpoint validation failed for {endpoint['path']}: {e}")
+            return False
+
+    def test_websocket_channel(self, channel: Dict[str, Any]) -> bool:
+        """
+        Test WebSocket channel connectivity (optional override).
+
+        Can be implemented to actually connect and test WebSocket channels.
+
+        Args:
+            channel: Channel dictionary
+
+        Returns:
+            True if channel is accessible, False otherwise
+        """
+        # Basic implementation - override for actual WebSocket testing
+        logger.debug(f"WebSocket test not implemented for {channel['channel_name']}")
+        return True
