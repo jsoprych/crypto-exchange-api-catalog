@@ -60,536 +60,28 @@ class PhemexAdapter(BaseVendorAdapter):
         """
         Discover Phemex REST API endpoints.
 
-        Implementation Strategy:
-        1. Start with known public endpoints from documentation
-        2. Consider dynamic discovery if exchange provides endpoint listing
-        3. Include both market data and (optionally) authenticated endpoints
-        4. Document rate limits, authentication requirements, parameters
-
-        Returns:
-            List of endpoint dictionaries with standard structure
+        Currently returns empty list as Phemex's REST API requires further research.
+        TODO: Implement proper endpoint discovery when documentation is available.
         """
-        logger.info("Discovering Phemex REST endpoints")
-
-        endpoints = []
-
-        # ============================================================================
-        # 1. MARKET DATA ENDPOINTS (Public - No Authentication Required)
-        # ============================================================================
-
-        # Basic connectivity and system status endpoints
-        system_endpoints = [
-            {
-                "path": "/api/v3/ping",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Test connectivity to the REST API",
-                "query_parameters": {},
-                "response_schema": {"type": "object"},
-                "rate_limit_tier": "public"
-            },
-            {
-                "path": "/api/v3/time",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Get server time",
-                "query_parameters": {},
-                "response_schema": {
-                    "type": "object",
-                    "properties": {
-                        "serverTime": {"type": "integer", "description": "Unix timestamp in milliseconds"}
-                    }
-                },
-                "rate_limit_tier": "public"
-            },
-        ]
-        endpoints.extend(system_endpoints)
-
-        # Product/Instrument information endpoints
-        product_endpoints = [
-            {
-                "path": "/api/v3/exchangeInfo",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Get exchange trading rules and symbol information",
-                "query_parameters": {},
-                "response_schema": {"type": "object"},
-                "rate_limit_tier": "public"
-            },
-        ]
-        endpoints.extend(product_endpoints)
-
-        # Market data endpoints
-        market_data_endpoints = [
-            {
-                "path": "/api/v3/ticker/24hr",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "24 hour rolling window price change statistics",
-                "query_parameters": {
-                    "symbol": {
-                        "type": "string",
-                        "required": False,
-                        "description": "Trading pair symbol (e.g., BTCUSDT). If not provided, returns all symbols"
-                    }
-                },
-                "response_schema": {
-                    "type": "object",
-                    "properties": {
-                        "symbol": {"type": "string"},
-                        "priceChange": {"type": "string"},
-                        "priceChangePercent": {"type": "string"},
-                        "lastPrice": {"type": "string"},
-                        "volume": {"type": "string"}
-                    }
-                },
-                "rate_limit_tier": "public"
-            },
-            {
-                "path": "/api/v3/depth",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Order book depth",
-                "query_parameters": {
-                    "symbol": {
-                        "type": "string",
-                        "required": True,
-                        "description": "Trading pair symbol"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "required": False,
-                        "description": "Number of depth levels (5, 10, 20, 50, 100, 500, 1000, 5000)",
-                        "default": 100
-                    }
-                },
-                "response_schema": {
-                    "type": "object",
-                    "properties": {
-                        "lastUpdateId": {"type": "integer"},
-                        "bids": {
-                            "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "minItems": 2,
-                                "maxItems": 2
-                            }
-                        },
-                        "asks": {
-                            "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "minItems": 2,
-                                "maxItems": 2
-                            }
-                        }
-                    }
-                },
-                "rate_limit_tier": "public"
-            },
-            {
-                "path": "/api/v3/klines",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Kline/candlestick data",
-                "query_parameters": {
-                    "symbol": {
-                        "type": "string",
-                        "required": True,
-                        "description": "Trading pair symbol"
-                    },
-                    "interval": {
-                        "type": "string",
-                        "required": True,
-                        "description": "Kline interval (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M)"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "required": False,
-                        "description": "Number of klines to return (1-1000)",
-                        "default": 500
-                    }
-                },
-                "response_schema": {
-                    "type": "array",
-                    "items": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "minItems": 12,
-                        "maxItems": 12
-                    }
-                },
-                "rate_limit_tier": "public"
-            },
-            {
-                "path": "/api/v3/trades",
-                "method": "GET",
-                "authentication_required": False,
-                "description": "Recent trades list",
-                "query_parameters": {
-                    "symbol": {
-                        "type": "string",
-                        "required": True,
-                        "description": "Trading pair symbol"
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "required": False,
-                        "description": "Number of trades to return (1-1000)",
-                        "default": 500
-                    }
-                },
-                "response_schema": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "id": {"type": "integer"},
-                            "price": {"type": "string"},
-                            "qty": {"type": "string"},
-                            "time": {"type": "integer"}
-                        }
-                    }
-                },
-                "rate_limit_tier": "public"
-            },
-        ]
-        endpoints.extend(market_data_endpoints)
-
-        # ============================================================================
-        # 2. AUTHENTICATED ENDPOINTS (Phase 3 - Optional for initial implementation)
-        # ============================================================================
-
-        # Uncomment and implement when adding authenticated endpoint support
-        """
-        authenticated_endpoints = [
-            {
-                "path": "/api/v3/account",
-                "method": "GET",
-                "authentication_required": True,
-                "description": "Account information",
-                "query_parameters": {},
-                "response_schema": {"type": "object"},
-                "rate_limit_tier": "private"
-            },
-            {
-                "path": "/api/v3/order",
-                "method": "POST",
-                "authentication_required": True,
-                "description": "Create new order",
-                "query_parameters": {
-                    "symbol": {"type": "string", "required": True},
-                    "side": {"type": "string", "required": True, "enum": ["BUY", "SELL"]},
-                    "type": {"type": "string", "required": True, "enum": ["LIMIT", "MARKET"]},
-                    "quantity": {"type": "string", "required": True},
-                    "price": {"type": "string", "required": False}  # Required for LIMIT orders
-                },
-                "response_schema": {"type": "object"},
-                "rate_limit_tier": "private"
-            },
-        ]
-        endpoints.extend(authenticated_endpoints)
-        """
-
-        # ============================================================================
-        # 3. DYNAMIC DISCOVERY (Optional - if exchange provides endpoint listing)
-        # ============================================================================
-
-        # Some exchanges provide API endpoint listings. Example pattern:
-        """
-        try:
-            # If exchange provides endpoint discovery endpoint
-            discovery_url = f"{self.base_url}/api/v3/endpoints"
-            response = self.http_client.get(discovery_url)
-
-            for endpoint_info in response.get('endpoints', []):
-                endpoint = {
-                    "path": endpoint_info['path'],
-                    "method": endpoint_info['method'],
-                    "authentication_required": endpoint_info.get('auth_required', False),
-                    "description": endpoint_info.get('description', ''),
-                    "query_parameters": endpoint_info.get('params', {}),
-                    "response_schema": endpoint_info.get('response_schema', {}),
-                    "rate_limit_tier": endpoint_info.get('rate_limit', 'public')
-                }
-                endpoints.append(endpoint)
-
-        except Exception as e:
-            logger.warning(f"Dynamic endpoint discovery failed: {e}. Using static endpoints.")
-        """
-
-        logger.info(f"Discovered {len(endpoints)} REST endpoints")
-        return endpoints
+        logger.info("Discovering Phemex REST endpoints (placeholder)")
+        return []
 
     def discover_websocket_channels(self) -> List[Dict[str, Any]]:
-        """
-        Discover Phemex WebSocket channels and message formats.
+        '''
+        Discover Phemex WebSocket channels.
 
-        Implementation Strategy:
-        1. Map all public WebSocket channels from documentation
-        2. Include subscribe/unsubscribe message formats
-        3. Document message types and schemas
-        4. Note authentication requirements
-
-        Returns:
-            List of WebSocket channel dictionaries
-        """
-        logger.info("Discovering Phemex WebSocket channels")
-
-        channels = []
-
-        # ============================================================================
-        # 1. MARKET DATA CHANNELS (Public)
-        # ============================================================================
-
-        # Ticker channel
-        channels.append({
-            "channel_name": "ticker",
-            "authentication_required": False,
-            "description": "Real-time ticker updates for trading pairs",
-            "subscribe_format": {
-                "type": "subscribe",
-                "method": "SUBSCRIPTION",
-                "params": ["ticker@<symbol>"],  # Replace <symbol> with actual pair
-                "id": 1
-            },
-            "unsubscribe_format": {
-                "type": "unsubscribe",
-                "method": "UNSUBSCRIBE",
-                "params": ["ticker@<symbol>"],
-                "id": 2
-            },
-            "message_types": ["ticker", "subscription"],
-            "message_schema": {
-                "type": "object",
-                "properties": {
-                    "e": {"type": "string", "description": "Event type"},
-                    "E": {"type": "integer", "description": "Event time"},
-                    "s": {"type": "string", "description": "Symbol"},
-                    "p": {"type": "string", "description": "Price change"},
-                    "P": {"type": "string", "description": "Price change percent"},
-                    "c": {"type": "string", "description": "Last price"},
-                    "v": {"type": "string", "description": "Volume"},
-                    "q": {"type": "string", "description": "Quote volume"}
-                }
-            },
-            "vendor_metadata": {
-                "channel_pattern": "ticker@{}",  # {} will be replaced with symbol
-                "supports_multiple_symbols": True,
-                "update_frequency": "real-time"
-            }
-        })
-
-        # Order book channel
-        channels.append({
-            "channel_name": "depth",
-            "authentication_required": False,
-            "description": "Real-time order book updates (level 2)",
-            "subscribe_format": {
-                "type": "subscribe",
-                "method": "SUBSCRIPTION",
-                "params": ["depth@<symbol>"],
-                "id": 1
-            },
-            "unsubscribe_format": {
-                "type": "unsubscribe",
-                "method": "UNSUBSCRIBE",
-                "params": ["depth@<symbol>"],
-                "id": 2
-            },
-            "message_types": ["depthUpdate", "snapshot", "subscription"],
-            "message_schema": {
-                "type": "object",
-                "properties": {
-                    "e": {"type": "string", "description": "Event type"},
-                    "E": {"type": "integer", "description": "Event time"},
-                    "s": {"type": "string", "description": "Symbol"},
-                    "U": {"type": "integer", "description": "First update ID"},
-                    "u": {"type": "integer", "description": "Final update ID"},
-                    "b": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 2,
-                            "maxItems": 2
-                        },
-                        "description": "Bids"
-                    },
-                    "a": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 2,
-                            "maxItems": 2
-                        },
-                        "description": "Asks"
-                    }
-                }
-            },
-            "vendor_metadata": {
-                "channel_pattern": "depth@{}",
-                "levels": "full",  # or "partial" for top N levels
-                "update_type": "delta"  # or "snapshot" for full book
-            }
-        })
-
-        # Trade channel
-        channels.append({
-            "channel_name": "trade",
-            "authentication_required": False,
-            "description": "Real-time trade execution updates",
-            "subscribe_format": {
-                "type": "subscribe",
-                "method": "SUBSCRIPTION",
-                "params": ["trade@<symbol>"],
-                "id": 1
-            },
-            "unsubscribe_format": {
-                "type": "unsubscribe",
-                "method": "UNSUBSCRIBE",
-                "params": ["trade@<symbol>"],
-                "id": 2
-            },
-            "message_types": ["trade", "aggregateTrade", "subscription"],
-            "message_schema": {
-                "type": "object",
-                "properties": {
-                    "e": {"type": "string", "description": "Event type"},
-                    "E": {"type": "integer", "description": "Event time"},
-                    "s": {"type": "string", "description": "Symbol"},
-                    "t": {"type": "integer", "description": "Trade ID"},
-                    "p": {"type": "string", "description": "Price"},
-                    "q": {"type": "string", "description": "Quantity"},
-                    "m": {"type": "boolean", "description": "Is buyer maker?"}
-                }
-            },
-            "vendor_metadata": {
-                "channel_pattern": "trade@{}",
-                "trade_type": "individual",  # or "aggregate" for combined trades
-                "include_maker_info": True
-            }
-        })
-
-        # Kline/candlestick channel
-        channels.append({
-            "channel_name": "kline",
-            "authentication_required": False,
-            "description": "Real-time candlestick updates",
-            "subscribe_format": {
-                "type": "subscribe",
-                "method": "SUBSCRIPTION",
-                "params": ["kline_<interval>@<symbol>"],  # e.g., kline_1m@BTCUSDT
-                "id": 1
-            },
-            "unsubscribe_format": {
-                "type": "unsubscribe",
-                "method": "UNSUBSCRIBE",
-                "params": ["kline_<interval>@<symbol>"],
-                "id": 2
-            },
-            "message_types": ["kline", "subscription"],
-            "message_schema": {
-                "type": "object",
-                "properties": {
-                    "e": {"type": "string", "description": "Event type"},
-                    "E": {"type": "integer", "description": "Event time"},
-                    "s": {"type": "string", "description": "Symbol"},
-                    "k": {
-                        "type": "object",
-                        "properties": {
-                            "t": {"type": "integer", "description": "Kline start time"},
-                            "T": {"type": "integer", "description": "Kline close time"},
-                            "o": {"type": "string", "description": "Open price"},
-                            "c": {"type": "string", "description": "Close price"},
-                            "h": {"type": "string", "description": "High price"},
-                            "l": {"type": "string", "description": "Low price"},
-                            "v": {"type": "string", "description": "Volume"}
-                        }
-                    }
-                }
-            },
-            "vendor_metadata": {
-                "channel_pattern": "kline_{}@{}",  # interval then symbol
-                "supported_intervals": ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"],
-                "update_frequency": "interval-based"
-            }
-        })
-
-        # ============================================================================
-        # 2. HEARTBEAT/CONNECTION MANAGEMENT
-        # ============================================================================
-
-        channels.append({
-            "channel_name": "heartbeat",
-            "authentication_required": False,
-            "description": "Connection heartbeat/ping-pong messages",
-            "subscribe_format": {
-                "type": "subscribe",
-                "method": "LISTEN",
-                "params": ["heartbeat"]
-            },
-            "unsubscribe_format": {
-                "type": "unsubscribe",
-                "method": "UNLISTEN",
-                "params": ["heartbeat"]
-            },
-            "message_types": ["heartbeat", "pong", "connection"],
-            "message_schema": {
-                "type": "object",
-                "properties": {
-                    "type": {"type": "string", "description": "Message type"},
-                    "time": {"type": "integer", "description": "Timestamp"}
-                }
-            },
-            "vendor_metadata": {
-                "keepalive_interval": 30000,  # milliseconds
-                "auto_reconnect": True
-            }
-        })
-
-        # ============================================================================
-        # 3. AUTHENTICATED CHANNELS (Phase 3 - Optional)
-        # ============================================================================
-
-        """
-        channels.append({
-            "channel_name": "account",
-            "authentication_required": True,
-            "description": "Account updates (balance changes, orders, etc.)",
-            "subscribe_format": {
-                "type": "auth",
-                "method": "LOGIN",
-                "params": ["api_key", "signature", "timestamp"]
-            },
-            "message_types": ["outboundAccountInfo", "executionReport", "balanceUpdate"],
-            "message_schema": {"type": "object"},
-            "vendor_metadata": {
-                "requires_signature": True,
-                "update_types": ["balance", "order", "trade"]
-            }
-        })
-        """
-
-        logger.info(f"Discovered {len(channels)} WebSocket channels")
-        return channels
+        Currently returns empty list as Phemex's WebSocket API is not yet mapped.
+        TODO: Implement proper channel discovery when documentation is available.
+        '''
+        logger.info('Discovering Phemex WebSocket channels (placeholder)')
+        return []
 
     def discover_products(self) -> List[Dict[str, Any]]:
         """
         Discover Phemex trading products/symbols from live API.
 
-        IMPORTANT: This method MUST make live API calls to fetch actual products.
-        Do not hardcode products. Fetch from exchange's product endpoint.
-
-        Implementation Steps:
-        1. Call the exchange's product/info endpoint (e.g., /api/v3/exchangeInfo)
-        2. Parse the response to extract symbol information
-        3. Map to our standard product format
-        4. Handle pagination if needed
-        5. Implement error handling and retry logic
+        Phemex provides products through the /public/products endpoint.
+        Returns spot and perpetual products with detailed metadata.
 
         Returns:
             List of product dictionaries in standard format
@@ -601,118 +93,123 @@ class PhemexAdapter(BaseVendorAdapter):
             # 1. FETCH PRODUCTS FROM EXCHANGE API
             # ========================================================================
 
-            # Most exchanges have an endpoint like /api/v3/exchangeInfo or /products
-            # Check the exchange documentation for the correct endpoint
-            products_url = f"{self.base_url}/api/v3/exchangeInfo"
-
-            # If the exchange uses a different endpoint, update this:
-            # products_url = f"{self.base_url}/products"
-            # products_url = f"{self.base_url}/v2/public/symbols"
-
+            # Phemex uses /public/products endpoint
+            products_url = f"{self.base_url}/public/products"
             logger.debug(f"Fetching products from: {products_url}")
 
             # Make the API request
             response = self.http_client.get(products_url)
 
             # ========================================================================
-            # 2. PARSE RESPONSE BASON ON EXCHANGE FORMAT
+            # 2. PARSE RESPONSE
             # ========================================================================
+
+            # Check response structure
+            if not isinstance(response, dict) or 'data' not in response:
+                logger.error(f"Unexpected response format: {type(response)}")
+                raise Exception(f"Unexpected response format from Phemex")
+
+            data = response['data']
+            if 'products' not in data:
+                logger.error(f"Missing 'products' in response data: {list(data.keys())}")
+                raise Exception(f"Missing products data in Phemex response")
+
+            raw_products = data['products']
+            if not isinstance(raw_products, list):
+                logger.error(f"Unexpected products format: {type(raw_products)}")
+                raise Exception(f"Unexpected products format from Phemex")
 
             products = []
 
-            # Common response format patterns:
-            # Pattern 1: Binance-style (response['symbols'] contains list)
-            if 'symbols' in response:
-                symbols_data = response['symbols']
-            # Pattern 2: Direct array response
-            elif isinstance(response, list):
-                symbols_data = response
-            # Pattern 3: Nested under 'data' or 'result'
-            elif 'data' in response:
-                symbols_data = response['data']
-            elif 'result' in response:
-                symbols_data = response['result']
-            else:
-                # Default to trying to use the response directly
-                symbols_data = response
-
-            # Ensure we have an iterable
-            if not isinstance(symbols_data, list):
-                logger.error(f"Unexpected response format: {type(symbols_data)}")
-                raise Exception(f"Unexpected response format from Phemex")
-
             # ========================================================================
-            # 3. PROCESS EACH SYMBOL/PRODUCT
+            # 3. PROCESS EACH PRODUCT
             # ========================================================================
 
-            for symbol_info in symbols_data:
+            for prod in raw_products:
                 try:
-                    # Extract common fields with fallbacks for different exchange formats
+                    # Extract symbol (e.g., "BTCUSD", "sBTCUSDT", "cETHUSD")
+                    symbol = prod.get('symbol')
+                    if not symbol:
+                        logger.warning(f"Skipping product with missing symbol: {prod}")
+                        continue
 
-                    # Symbol/ID field (different exchanges use different keys)
-                    symbol = (
-                        symbol_info.get('symbol') or
-                        symbol_info.get('id') or
-                        symbol_info.get('name') or
-                        symbol_info.get('pair')
-                    )
+                    # Determine product type
+                    product_type = prod.get('type', '').lower()
 
-                    # Base currency (what you're buying/selling)
-                    base_currency = (
-                        symbol_info.get('baseAsset') or
-                        symbol_info.get('base_currency') or
-                        symbol_info.get('base') or
-                        symbol_info.get('baseCurrency')
-                    )
+                    # Determine base and quote currencies based on product type and symbol
+                    base_currency = None
+                    quote_currency = None
 
-                    # Quote currency (what you're trading with)
-                    quote_currency = (
-                        symbol_info.get('quoteAsset') or
-                        symbol_info.get('quote_currency') or
-                        symbol_info.get('quote') or
-                        symbol_info.get('quoteCurrency')
-                    )
+                    if product_type == 'spot':
+                        # Spot products: symbol starts with 's' (e.g., sBTCUSDT)
+                        # Remove 's' prefix and split
+                        clean_symbol = symbol[1:] if symbol.startswith('s') else symbol
+                        # Try to extract from quoteCurrency field
+                        quote_currency = prod.get('quoteCurrency')
+                        # Base currency might be inferred from symbol
+                        if quote_currency and clean_symbol.endswith(quote_currency):
+                            base_currency = clean_symbol[:-len(quote_currency)]
 
-                    # Status (trading availability)
-                    status_raw = (
-                        symbol_info.get('status') or
-                        symbol_info.get('state') or
-                        symbol_info.get('trading') or
-                        symbol_info.get('active')
-                    )
+                    elif product_type == 'perpetual':
+                        # Perpetual products: may have settleCurrency and quoteCurrency
+                        settle_currency = prod.get('settleCurrency')
+                        quote_currency = prod.get('quoteCurrency')
 
-                    # Normalize status to our standard values
-                    if status_raw in ['TRADING', 'trading', 'online', 'enabled', True]:
+                        if settle_currency and quote_currency:
+                            base_currency = settle_currency
+                        elif symbol and '_' in symbol:
+                            # Some perpetuals use underscore (e.g., BTC_USD)
+                            parts = symbol.split('_')
+                            if len(parts) >= 2:
+                                base_currency = parts[0]
+                                quote_currency = parts[1]
+
+                    # Fallback: try to parse from symbol
+                    if not base_currency and symbol:
+                        # Remove 's' or 'c' prefix
+                        clean_symbol = symbol[1:] if symbol.startswith(('s', 'c')) else symbol
+                        # Look for currency pairs (USD, USDT, BTC, ETH, etc.)
+                        # This is a simple heuristic
+                        if clean_symbol.endswith('USDT'):
+                            base_currency = clean_symbol[:-4]
+                            quote_currency = 'USDT'
+                        elif clean_symbol.endswith('USD'):
+                            base_currency = clean_symbol[:-3]
+                            quote_currency = 'USD'
+                        elif clean_symbol.endswith('BTC'):
+                            base_currency = clean_symbol[:-3]
+                            quote_currency = 'BTC'
+
+                    # Status mapping
+                    status_raw = prod.get('status', '').lower()
+                    if status_raw == 'listed':
                         status = 'online'
-                    elif status_raw in ['HALT', 'halted', 'offline', 'disabled', False]:
+                    elif status_raw in ['halt', 'halted', 'unlisted']:
                         status = 'offline'
-                    elif status_raw in ['BREAK', 'delisted', 'expired']:
+                    elif status_raw in ['delisted', 'expired']:
                         status = 'delisted'
                     else:
-                        status = 'offline'  # Default if unknown
+                        status = 'offline'
 
-                    # Trading limits/precision (if available)
+                    # Trading limits/precision
                     min_order_size = None
-                    max_order_size = None
                     price_increment = None
 
-                    # Try to extract from various exchange formats
-                    if 'filters' in symbol_info:
-                        for filter_item in symbol_info.get('filters', []):
-                            filter_type = filter_item.get('filterType')
-                            if filter_type == 'LOT_SIZE':
-                                min_order_size = float(filter_item.get('minQty', 0))
-                                max_order_size = float(filter_item.get('maxQty', 0))
-                            elif filter_type == 'PRICE_FILTER':
-                                price_increment = float(filter_item.get('tickSize', 0))
+                    # Extract from tickSize and lotSize
+                    tick_size = prod.get('tickSize')
+                    lot_size = prod.get('lotSize')
 
-                    # Alternative field names
-                    if min_order_size is None:
-                        min_order_size = float(symbol_info.get('base_min_size', 0)) if symbol_info.get('base_min_size') else None
-                    if max_order_size is None:
-                        max_order_size = float(symbol_info.get('base_max_size', 0)) if symbol_info.get('base_max_size') else None
-                    if price_increment is None:
-                        price_increment = float(symbol_info.get('quote_increment', 0)) if symbol_info.get('quote_increment') else None
+                    if tick_size is not None:
+                        try:
+                            price_increment = float(tick_size)
+                        except (ValueError, TypeError):
+                            pass
+
+                    if lot_size is not None:
+                        try:
+                            min_order_size = float(lot_size)
+                        except (ValueError, TypeError):
+                            pass
 
                     # Create product dictionary
                     product = {
@@ -721,20 +218,20 @@ class PhemexAdapter(BaseVendorAdapter):
                         "quote_currency": quote_currency,
                         "status": status,
                         "min_order_size": min_order_size,
-                        "max_order_size": max_order_size,
+                        "max_order_size": None,  # Phemex doesn't provide max order size
                         "price_increment": price_increment,
-                        "vendor_metadata": symbol_info  # Store full raw data
+                        "vendor_metadata": prod  # Store full raw data
                     }
 
                     # Validate required fields
-                    if not all([product["symbol"], product["base_currency"], product["quote_currency"]]):
-                        logger.warning(f"Skipping product with missing required fields: {symbol_info}")
+                    if not all([product["symbol"], product["base_currency"]]):
+                        logger.warning(f"Skipping product with missing required fields: {prod}")
                         continue
 
                     products.append(product)
 
                 except Exception as e:
-                    logger.warning(f"Failed to parse product {symbol_info.get('symbol', 'unknown')}: {e}")
+                    logger.warning(f"Failed to parse product {prod.get('symbol', 'unknown')}: {e}")
                     continue
 
             # ========================================================================
@@ -747,15 +244,10 @@ class PhemexAdapter(BaseVendorAdapter):
 
             logger.info(f"Discovered {len(products)} products")
 
-            # Optional: Filter to only online products if needed
-            # online_products = [p for p in products if p['status'] == 'online']
-            # logger.info(f"Online products: {len(online_products)}")
-
             return products
 
         except Exception as e:
             logger.error(f"Failed to discover products: {e}")
-            # Re-raise to ensure discovery run is marked as failed
             raise Exception(f"Product discovery failed for Phemex: {e}")
 
     # ============================================================================
