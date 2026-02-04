@@ -31,6 +31,7 @@ from src.adapters.phemex_adapter import PhemexAdapter
 from src.adapters.lbank_adapter import LbankAdapter
 from src.adapters.whitebit_adapter import WhitebitAdapter
 from src.adapters.upbit_adapter import UpbitAdapter
+from src.adapters.bithumb_adapter import BithumbAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -213,6 +214,8 @@ class SpecificationGenerator:
             return WhitebitAdapter(vendor_config)
         elif vendor_name == 'upbit':
             return UpbitAdapter(vendor_config)
+        elif vendor_name == 'bithumb':
+            return BithumbAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -1425,8 +1428,25 @@ class SpecificationGenerator:
         #         )
         pass
 
+    def _link_bithumb_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Bithumb products to their available endpoints and channels.
 
-        # TODO: Implement Poloniex-specific linking logic
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: BithumbAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Bithumb products to feeds")
+
+        # TODO: Implement Bithumb-specific linking logic
         # Example pattern (update based on actual API):
         # for symbol, product_id in product_ids.items():
         #     # REST endpoints

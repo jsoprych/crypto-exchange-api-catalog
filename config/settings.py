@@ -496,6 +496,26 @@ VENDORS = {
             "requires_api_key": False  # Phase 1: public only
         }
     },
+    "bithumb": {
+        "enabled": True,
+        "display_name": "Bithumb Exchange",
+        "base_url": "https://api.bithumb.com",
+        "websocket_url": "wss://ws-api.bithumb.com/websocket/v1",
+        "documentation_url": "https://apidocs.bithumb.com/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/v1/market/all",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
 }
 
 # Discovery process configuration
