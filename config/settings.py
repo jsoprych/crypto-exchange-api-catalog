@@ -436,6 +436,46 @@ VENDORS = {
             "requires_api_key": False  # Phase 1: public only
         }
     },
+    "lbank": {
+        "enabled": True,
+        "display_name": "Lbank Exchange",
+        "base_url": "https://api.lbank.info",
+        "websocket_url": "wss://api.lbank.info/ws",
+        "documentation_url": "https://www.lbank.info/en-US/docs/index.html",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/v2/currencyPairs.do",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
+    "whitebit": {
+        "enabled": True,
+        "display_name": "Whitebit Exchange",
+        "base_url": "https://whitebit.com",
+        "websocket_url": "wss://whitebit.com/ws",
+        "documentation_url": "https://whitebit.com/api/v4/doc",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/api/v4/public/markets",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
 }
 
 # Discovery process configuration

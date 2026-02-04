@@ -28,6 +28,8 @@ from src.adapters.gemini_adapter import GeminiAdapter
 from src.adapters.poloniex_adapter import PoloniexAdapter
 from src.adapters.deribit_adapter import DeribitAdapter
 from src.adapters.phemex_adapter import PhemexAdapter
+from src.adapters.lbank_adapter import LbankAdapter
+from src.adapters.whitebit_adapter import WhitebitAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -204,6 +206,10 @@ class SpecificationGenerator:
             return DeribitAdapter(vendor_config)
         elif vendor_name == 'phemex':
             return PhemexAdapter(vendor_config)
+        elif vendor_name == 'lbank':
+            return LbankAdapter(vendor_config)
+        elif vendor_name == 'whitebit':
+            return WhitebitAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -1283,6 +1289,82 @@ class SpecificationGenerator:
         logger.info(f"Linking {len(product_ids)} Phemex products to feeds")
 
         # TODO: Implement Phemex-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_lbank_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Lbank products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: LbankAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Lbank products to feeds")
+
+        # TODO: Implement Lbank-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_whitebit_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Whitebit products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: WhitebitAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Whitebit products to feeds")
+
+        # TODO: Implement Whitebit-specific linking logic
         # Example pattern (update based on actual API):
         # for symbol, product_id in product_ids.items():
         #     # REST endpoints
