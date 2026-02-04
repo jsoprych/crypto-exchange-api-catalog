@@ -476,6 +476,26 @@ VENDORS = {
             "requires_api_key": False  # Phase 1: public only
         }
     },
+    "upbit": {
+        "enabled": True,
+        "display_name": "Upbit Exchange",
+        "base_url": "https://api.upbit.com",
+        "websocket_url": "wss://api.upbit.com/websocket/v1",
+        "documentation_url": "https://docs.upbit.com/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/v1/market/all",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
 }
 
 # Discovery process configuration

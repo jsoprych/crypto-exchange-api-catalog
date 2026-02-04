@@ -30,6 +30,7 @@ from src.adapters.deribit_adapter import DeribitAdapter
 from src.adapters.phemex_adapter import PhemexAdapter
 from src.adapters.lbank_adapter import LbankAdapter
 from src.adapters.whitebit_adapter import WhitebitAdapter
+from src.adapters.upbit_adapter import UpbitAdapter
 from src.database.repository import SpecificationRepository
 from src.utils.logger import get_logger
 
@@ -210,6 +211,8 @@ class SpecificationGenerator:
             return LbankAdapter(vendor_config)
         elif vendor_name == 'whitebit':
             return WhitebitAdapter(vendor_config)
+        elif vendor_name == 'upbit':
+            return UpbitAdapter(vendor_config)
         else:
             raise ValueError(f"Unknown vendor: {vendor_name}")
 
@@ -1365,6 +1368,44 @@ class SpecificationGenerator:
         logger.info(f"Linking {len(product_ids)} Whitebit products to feeds")
 
         # TODO: Implement Whitebit-specific linking logic
+        # Example pattern (update based on actual API):
+        # for symbol, product_id in product_ids.items():
+        #     # REST endpoints
+        #     ticker_key = "GET /api/v3/ticker/24hr"
+        #     if ticker_key in endpoint_ids:
+        #         self.repository.link_product_to_endpoint(
+        #             product_id,
+        #             endpoint_ids[ticker_key],
+        #             'ticker'
+        #         )
+        #
+        #     # WebSocket channels
+        #     for channel_name, channel_id in channel_ids.items():
+        #         self.repository.link_product_to_ws_channel(
+        #             product_id,
+        #             channel_id
+        #         )
+        pass
+
+    def _link_upbit_feeds(
+        self,
+        product_ids: Dict[str, int],
+        endpoint_ids: Dict[str, int],
+        channel_ids: Dict[str, int],
+        adapter: BaseVendorAdapter
+    ):
+        """
+        Link Upbit products to their available endpoints and channels.
+
+        Args:
+            product_ids: Dictionary of symbol -> product_id
+            endpoint_ids: Dictionary of endpoint key -> endpoint_id
+            channel_ids: Dictionary of channel_name -> channel_id
+            adapter: UpbitAdapter instance
+        """
+        logger.info(f"Linking {len(product_ids)} Upbit products to feeds")
+
+        # TODO: Implement Upbit-specific linking logic
         # Example pattern (update based on actual API):
         # for symbol, product_id in product_ids.items():
         #     # REST endpoints
