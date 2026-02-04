@@ -9,14 +9,17 @@ metadata:
   goal: "Expand from 11 to 25 cryptocurrency exchanges with unified field mapping"
   phase: "Phase 4: Rapid Expansion - 22/25 exchanges complete"
   session_start: "2026-02-02T15:56:43-06:00"
-  last_updated: "2026-02-04T02:55:56Z"
+  last_updated: "2026-02-04T08:25:20Z"
 
 git_status:
   branch: "main"
   upstream_status: "up to date with 'origin/main'"
-  last_commit: "a5bcd04 - docs: Add mermaid diagrams and comprehensive exchange coverage documentation"
+  last_commit: "5081f4d - feat: Add Bithumb exchange integration with product discovery and field mappings"
 
   recent_commits:
+    - hash: "5081f4d"
+      message: "feat: Add Bithumb exchange integration with product discovery and field mappings"
+      timestamp: "2026-02-04T08:25:20Z"
     - hash: "a5bcd04"
       message: "docs: Add mermaid diagrams and comprehensive exchange coverage documentation"
       timestamp: "2026-02-04T02:55:56Z"
@@ -29,9 +32,6 @@ git_status:
     - hash: "5907b75"
       message: "feat: Complete Bitget exchange integration with field mappings"
       timestamp: "2026-02-02T09:28:00Z"
-    - hash: "47ef46b"
-      message: "feat: Create exchange automation system and Bitget integration foundation"
-      timestamp: "2024-02-01T01:05:56Z"
 
   pending_changes:
     modified: []
@@ -126,19 +126,19 @@ project_status:
     - "Bithumb"
 
   current_integration:
-    name: "Bithumb"
-    status: "completed"
+    name: "Korbit"
+    status: "pending"
     progress:
-      adapter_created: true  # Created via automation
-      config_added: true  # Added via automation
-      registered_in_spec_generator: true  # Registered via automation
-      linking_method_added: true  # _link_bithumb_feeds method exists
-      product_discovery_working: true  # Tested successfully
-      products_discovered: 464
-      rest_endpoints: 8
-      websocket_channels: 4
-      mappings_created: true  # 12 WebSocket ticker mappings created
-      coverage_percentage: 85
+      adapter_created: false  # To be created via automation
+      config_added: false  # To be added via automation
+      registered_in_spec_generator: false  # To be registered via automation
+      linking_method_added: false  # Need to add _link_korbit_feeds method
+      product_discovery_working: false  # Needs testing
+      products_discovered: 0
+      rest_endpoints: 0
+      websocket_channels: 0
+      mappings_created: false  # Template will be created, not implemented yet
+      coverage_percentage: 0
       tested: false
       committed: false  # Not yet committed
 
@@ -219,22 +219,22 @@ optimization_ideas:
 
 next_steps:
 immediate_1h:
-  - "Research Bithumb API documentation and test connectivity"
-  - "Use automation: python add_exchange.py --name bithumb --base-url https://api.bithumb.com --ws-url wss://wss.bithumb.com --docs https://apidocs.bithumb.com/ --product-endpoint /public/ticker/ALL --display-name 'Bithumb Exchange'"
-  - "Review and implement API logic in src/adapters/bithumb_adapter.py"
-  - "Test product discovery: python main.py discover --vendor bithumb"
-  - "Add _link_bithumb_feeds method to spec_generator.py"
-  - "Create Bithumb field mappings template"
+  - "Research Korbit API documentation and test connectivity"
+  - "Use automation: python add_exchange.py --name korbit --base-url https://api.korbit.co.kr --ws-url wss://ws.korbit.co.kr --docs https://apidocs.korbit.co.kr/ --product-endpoint /v1/ticker --display-name 'Korbit Exchange'"
+  - "Review and implement API logic in src/adapters/korbit_adapter.py"
+  - "Test product discovery: python main.py discover --vendor korbit"
+  - "Add _link_korbit_feeds method to spec_generator.py"
+  - "Create Korbit field mappings template"
 
   short_term_4h:
-    - "Complete Bithumb integration (22/25 exchanges)"
-    - "Start Korbit exchange integration"
+    - "Complete Korbit integration (23/25 exchanges)"
+    - "Start Zaif exchange integration"
     - "Update coverage statistics and field mappings for new exchanges"
     - "Create exchange coverage progress report with CCXT comparison"
 
   medium_term_1d:
-    - "Complete Korbit and Zaif exchanges (24/25 exchanges)"
-    - "Add final reserve exchange (HitBTC or alternative)"
+    - "Complete Zaif and reserve exchange (24/25 exchanges)"
+    - "Add final exchange to reach 25-exchange target"
     - "Implement exchange coverage requirements tracking"
     - "Update all documentation with 25-exchange milestone"
 
