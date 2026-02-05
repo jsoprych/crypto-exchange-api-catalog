@@ -536,6 +536,26 @@ VENDORS = {
             "requires_api_key": False  # Phase 1: public only
         }
     },
+    "zaif": {
+        "enabled": True,
+        "display_name": "Zaif Exchange",
+        "base_url": "https://api.zaif.jp",
+        "websocket_url": "wss://api.zaif.jp",
+        "documentation_url": "https://zaif-api-document.readthedocs.io/",
+        "discovery_methods": ["live_api_probing"],
+        "endpoints": {
+            "products": "/api/1/ticker",
+            "time": "/api/v3/time",  # UPDATE: Replace with actual time endpoint
+            "tickers": "/api/v3/ticker/24hr"  # UPDATE: Replace with actual ticker endpoint
+        },
+        "rate_limits": {
+            "public": 20  # UPDATE: Set actual rate limit
+        },
+        "authentication": {
+            "public_endpoints": True,
+            "requires_api_key": False  # Phase 1: public only
+        }
+    },
 }
 
 # Discovery process configuration
